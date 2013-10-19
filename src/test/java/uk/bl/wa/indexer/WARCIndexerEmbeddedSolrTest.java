@@ -1,7 +1,7 @@
 /**
  * 
  */
-package uk.bl.wap.indexer;
+package uk.bl.wa.indexer;
 
 import static org.junit.Assert.*;
 
@@ -30,7 +30,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import uk.bl.wap.util.solr.WritableSolrRecord;
+import uk.bl.wa.indexer.WARCIndexer;
+import uk.bl.wa.util.solr.WritableSolrRecord;
 
 /**
  * @author Andrew Jackson <Andrew.Jackson@bl.uk>

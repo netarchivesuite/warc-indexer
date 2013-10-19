@@ -1,13 +1,15 @@
 /**
  * 
  */
-package uk.bl.wap.util;
+package uk.bl.wa.util;
 
 import static org.junit.Assert.*;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import uk.bl.wa.util.ColourMatcher;
 
 /**
  * @author Andrew Jackson <Andrew.Jackson@bl.uk>
@@ -33,7 +35,7 @@ public class ColourMatcherTest {
 	}
 
 	/**
-	 * Test method for {@link uk.bl.wap.util.ColourMatcher#getMatch(int, int, int)}.
+	 * Test method for {@link uk.bl.wa.util.ColourMatcher#getMatch(int, int, int)}.
 	 */
 	@Test
 	public void testGetMatchIntIntInt() {

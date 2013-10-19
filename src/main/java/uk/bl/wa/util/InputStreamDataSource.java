@@ -1,7 +1,7 @@
 /**
  * 
  */
-package uk.bl.wap.util;
+package uk.bl.wa.util;
 
 import java.io.IOException;
 import java.io.InputStream;

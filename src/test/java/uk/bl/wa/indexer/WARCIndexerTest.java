@@ -1,8 +1,10 @@
-package uk.bl.wap.indexer;
+package uk.bl.wa.indexer;
 
 import static org.junit.Assert.*;
 
 import org.junit.Test;
+
+import uk.bl.wa.indexer.WARCIndexer;
 
 public class WARCIndexerTest {
 	

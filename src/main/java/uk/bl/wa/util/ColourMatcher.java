@@ -1,7 +1,7 @@
 /**
  * 
  */
-package uk.bl.wap.util;
+package uk.bl.wa.util;
 
 import java.awt.Color;
 import java.io.BufferedReader;

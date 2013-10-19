@@ -1,4 +1,4 @@
-package uk.bl.wap.util.solr;
+package uk.bl.wa.util.solr;
 
 public interface WctFields {
 

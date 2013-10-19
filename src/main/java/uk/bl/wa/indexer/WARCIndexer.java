@@ -1,4 +1,4 @@
-package uk.bl.wap.indexer;
+package uk.bl.wa.indexer;
 
 import static org.archive.io.warc.WARCConstants.HEADER_KEY_TYPE;
 import static org.archive.io.warc.WARCConstants.RESPONSE;
@@ -71,11 +71,11 @@ import uk.bl.wa.nanite.droid.DroidDetector;
 import uk.bl.wa.parsers.HtmlFeatureParser;
 import uk.bl.wa.sentimentalj.Sentiment;
 import uk.bl.wa.sentimentalj.SentimentalJ;
-import uk.bl.wap.util.PostcodeGeomapper;
-import uk.bl.wap.util.solr.SolrFields;
-import uk.bl.wap.util.solr.SolrWebServer;
-import uk.bl.wap.util.solr.TikaExtractor;
-import uk.bl.wap.util.solr.WritableSolrRecord;
+import uk.bl.wa.util.PostcodeGeomapper;
+import uk.bl.wa.util.solr.SolrFields;
+import uk.bl.wa.util.solr.SolrWebServer;
+import uk.bl.wa.util.solr.TikaExtractor;
+import uk.bl.wa.util.solr.WritableSolrRecord;
 import uk.gov.nationalarchives.droid.command.action.CommandExecutionException;
 import eu.scape_project.bitwiser.utils.FuzzyHash;
 import eu.scape_project.bitwiser.utils.SSDeep;
