@@ -6,7 +6,7 @@ It is now a single maven project and will further development will be in this re
 
 This repository will also probably be moved to this  sub github project repository under the Royal Danish Library: https://github.com/netarchivesuite/
 
-The warc-indexer.with-dependencies.jar file has been tested to produce identical results as the original:  https://github.com/ukwa/webarchive-discovery/warc-indexer
+The warc-indexer.with-dependencies.jar file has been tested to produce identical results as the warc-indexer from BL.
 
 TODO: Fix the depencencies in the pom.xml. Needs to excludes in dependencies so same library is not added multiple times and maybe in different version.
 
