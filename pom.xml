@@ -1,12 +1,29 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>warc-indexer</artifactId>
-    <parent>
-        <groupId>uk.bl.wa.discovery</groupId>
-        <artifactId>warc-discovery</artifactId>
-        <version>3.3.1-SNAPSHOT</version>
-        <relativePath>..</relativePath>
-    </parent>
+     <groupId>dk.kb.netarchivesuite.warcindexer</groupId>
+     <artifactId>warc-indexer</artifactId>
+     <packaging>jar</packaging>
+     <name>warc-indexer</name>
+     <url>https://maven.apache.org</url>
+     <version>3.3.1-SNAPSHOT</version>
+    
+    <properties>
+      <solr.version>8.7.0</solr.version>
+      <webarchive.commons.version>1.1.9</webarchive.commons.version>
+      <tika.version>2.7.0</tika.version>
+      <hadoop.version>0.20.2</hadoop.version>
+      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+      <ram>1024</ram>
+      <jackson.version>2.11.3</jackson.version>
+      <slf4j.version.override>1.5.11</slf4j.version.override><!-- last version compatible with ancient Hadoop -->
+      <log4j.version>1.2.17</log4j.version>
+   </properties>
+      <organization>
+      <name>The webarchive-discovery project contributors</name>
+      <url>https://github.com/ukwa/webarchive-discovery/graphs/contributors</url>
+   </organization>
+   <inceptionYear>2013</inceptionYear>
+   
     <licenses>
         <license>
             <name>GNU General Public License Version 2</name>
@@ -59,10 +76,236 @@
                     </execution>
                 </executions>
             </plugin>
-        </plugins>
+      
+    
+      
+     
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>3.8.1</version>
+            <configuration>
+               <source>1.8</source>
+               <target>1.8</target>
+            </configuration>
+         </plugin>
+         <plugin>
+            <!-- Separates the unit tests from the integration tests. -->
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>3.0.0-M5</version>
+            <configuration>
+               <!-- Skip the default running of this plug-in (or everything 
+                  is run twice...see below) -->
+               <skip>true</skip>
+               <!-- Show 100% of the lines from the stack trace (doesn't 
+                  work) -->
+               <trimStackTrace>false</trimStackTrace>
+               <forkMode>always</forkMode>
+               <argLine>-Xms${ram}m -Xmx${ram}m</argLine>
+            </configuration>
+            <executions>
+               <execution>
+                  <id>unit-tests</id>
+                  <phase>test</phase>
+                  <goals>
+                     <goal>test</goal>
+                  </goals>
+                  <configuration>
+                     <!-- Never skip running the tests when the test phase 
+                        is invoked -->
+                     <skip>false</skip>
+                     <includes>
+                        <!-- Include unit tests within integration-test phase. -->
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                     </includes>
+                     <excludes>
+                        <!-- Exclude integration tests within (unit) test 
+                           phase. -->
+                        <exclude>**/*IntegrationTest.java</exclude>
+                        <exclude>**/*IntegrationTests.java</exclude>
+                     </excludes>
+                  </configuration>
+               </execution>
+               <execution>
+                  <id>integration-tests</id>
+                  <phase>integration-test</phase>
+                  <goals>
+                     <goal>test</goal>
+                  </goals>
+                  <configuration>
+                     <!-- Never skip running the tests when the integration-test 
+                        phase is invoked -->
+                     <skip>false</skip>
+                     <includes>
+                        <!-- Include integration tests within integration-test 
+                           phase. -->
+                        <include>**/*IntegrationTest.java</include>
+                        <include>**/*IntegrationTests.java</include>
+                     </includes>
+                  </configuration>
+               </execution>
+            </executions>
+         </plugin>
+         <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>license-maven-plugin</artifactId>
+            <version>1.16</version>
+            <configuration>
+               <licenseName>gpl_v2</licenseName>
+               <verbose>false</verbose>
+               <canUpdateCopyright>true</canUpdateCopyright>
+               <roots>
+                  <root>src/main/java</root>
+                  <root>src/test/java</root>
+               </roots>
+            </configuration>
+         </plugin>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.0.1</version>
+            <configuration>
+               <additionalparam>-Xdoclint:none</additionalparam>
+               <additionalOptions>-Xdoclint:none</additionalOptions>
+            </configuration>
+         </plugin>         
+      </plugins>
+    
     </build>
 
+
+
+
     <dependencies>
+
+
+   <dependency>
+         <groupId>eu.scape-project.nanite</groupId>
+         <artifactId>nanite-core</artifactId>
+         <version>1.5.0-111</version>
+         <exclusions>
+            <exclusion>
+               <groupId>org.apache.cxf</groupId>
+               <artifactId>cxf-rt-bindings-http</artifactId>
+            </exclusion>
+            <exclusion>
+               <groupId>org.apache.cxf</groupId>
+               <artifactId>cxf-rt-frontend-simple</artifactId>
+            </exclusion>
+            <exclusion>
+               <groupId>org.apache.cxf</groupId>
+               <artifactId>cxf-rt-transports-http</artifactId>
+            </exclusion>
+            <exclusion>
+               <groupId>org.apache.cxf</groupId>
+               <artifactId>cxf-api</artifactId>
+            </exclusion>
+            <exclusion>
+               <groupId>org.apache.cxf</groupId>
+               <artifactId>cxf-rt-bindings-soap</artifactId>
+            </exclusion>
+            <exclusion>
+               <groupId>org.springframework</groupId>
+               <artifactId>spring</artifactId>
+            </exclusion>
+            <exclusion>
+               <groupId>org.springframework</groupId>
+               <artifactId>spring-context</artifactId>
+            </exclusion>
+            <exclusion>
+               <groupId>org.springframework</groupId>
+               <artifactId>spring-core</artifactId>
+            </exclusion>
+            <exclusion>
+               <groupId>org.springframework</groupId>
+               <artifactId>spring-beans</artifactId>
+            </exclusion>
+            <exclusion>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-slf4j-impl</artifactId>
+            </exclusion>
+         </exclusions>
+      </dependency>
+
+      <dependency>
+         <groupId>info.picocli</groupId>
+         <artifactId>picocli</artifactId>
+         <version>4.5.2</version>
+      </dependency>
+    
+     <dependency>
+         <groupId>org.apache.tika</groupId>
+         <artifactId>tika-core</artifactId>
+         <version>${tika.version}</version>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.tika</groupId>
+         <artifactId>tika-parsers-standard-package</artifactId>
+         <version>${tika.version}</version>
+         <exclusions>
+            <exclusion>
+               <groupId>org.apache.cxf</groupId>
+               <artifactId>cxf-rt-transports-http</artifactId>
+            </exclusion>
+         </exclusions>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.tika</groupId>
+         <artifactId>tika-parser-html-commons</artifactId>
+         <version>${tika.version}</version>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.tika</groupId>
+         <artifactId>tika-langdetect-optimaize</artifactId>
+         <version>${tika.version}</version>
+      </dependency>
+      <dependency>
+         <groupId>com.itextpdf</groupId>
+         <artifactId>itextpdf</artifactId>
+         <version>5.5.13.3</version>
+      </dependency>      
+      <dependency>
+         <groupId>org.bouncycastle</groupId>
+         <artifactId>bctsp-jdk16</artifactId>
+         <version>1.46</version>
+      </dependency>
+      <dependency>
+         <groupId>org.apache.xmlgraphics</groupId>
+         <artifactId>xmlgraphics-commons</artifactId>
+         <version>2.6</version>
+         <exclusions>
+            <exclusion>
+               <artifactId>commons-io</artifactId>
+               <groupId>commons-io</groupId>
+            </exclusion>
+         </exclusions>
+      </dependency>
+    
+    
+
+    <!-- Logging-->
+        <dependency>
+           <groupId>org.slf4j</groupId>
+           <artifactId>slf4j-api</artifactId>
+           <version>${slf4j.version.override}</version>
+        </dependency>
+        <dependency>
+           <groupId>org.slf4j</groupId>
+           <artifactId>jcl-over-slf4j</artifactId>
+           <version>${slf4j.version.override}</version>
+        </dependency>       
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>${slf4j.version.override}</version>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.typesafe</groupId>
@@ -147,18 +390,9 @@
             <version>2.5</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>uk.bl.wa.discovery</groupId>
-            <artifactId>digipres-tika</artifactId>
-            <version>3.3.1-SNAPSHOT</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>guava</artifactId>
-                    <groupId>com.google.guava</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
+ 
+ 
+ 
         <dependency>
             <groupId>org.apache.solr</groupId>
             <artifactId>solr-solrj</artifactId>
