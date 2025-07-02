@@ -1,12 +1,11 @@
-WARC Indexer
-============
-
-
 IMPORTANT!!!
 ============
 This warc-indexer repository is still in the process of being extracted from the multi maven module project https://github.com/ukwa/webarchive-discovery maintained by British Library.
 It is now a single maven project and will further development will be in this repository after the transition is finished.
 This repository will also probably be moved to this  sub github project repository under the Royal Danish Library: https://github.com/netarchivesuite/
+
+WARC Indexer
+============
 
 
 
