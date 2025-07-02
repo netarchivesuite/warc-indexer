@@ -147,21 +147,7 @@
                   </configuration>
                </execution>
             </executions>
-         </plugin>
-         <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>license-maven-plugin</artifactId>
-            <version>1.16</version>
-            <configuration>
-               <licenseName>gpl_v2</licenseName>
-               <verbose>false</verbose>
-               <canUpdateCopyright>true</canUpdateCopyright>
-               <roots>
-                  <root>src/main/java</root>
-                  <root>src/test/java</root>
-               </roots>
-            </configuration>
-         </plugin>
+         </plugin>       
          <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
