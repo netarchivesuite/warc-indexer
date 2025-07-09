@@ -1,4 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+ <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
      <groupId>dk.kb.netarchivesuite.warcindexer</groupId>
      <artifactId>warc-indexer</artifactId>
@@ -15,12 +15,13 @@
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
       <ram>1024</ram>
       <jackson.version>2.11.3</jackson.version>
-      <slf4j.version.override>1.5.11</slf4j.version.override><!-- last version compatible with ancient Hadoop -->
+      <slf4j.version.override>1.5.11</slf4j.version.override><!-- last version compatible with ancient Hadoop -->     
       <log4j.version>1.2.17</log4j.version>
-   </properties>
+      <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
+    </properties>
       <organization>
-      <name>The webarchive-discovery project contributors</name>
-      <url>https://github.com/ukwa/webarchive-discovery/graphs/contributors</url>
+      <name>The warc-indexer project contributors</name>
+      <url>https://github.com/netarchivesuite/warc-indexer/graphs/contributors</url>
    </organization>
    <inceptionYear>2013</inceptionYear>
    
@@ -31,6 +32,15 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+    
+    
+        <scm>
+        <connection>scm:git:${project.scm.url}</connection>
+        <developerConnection>scm:git:${project.scm.url}</developerConnection>
+        <url>git@github.com:idhub-io/idhub-api.git</url>
+        <tag>HEAD</tag>
+    </scm>
+    
     <build>
         <testResources>
             <testResource>
@@ -41,6 +51,17 @@
             </testResource>
         </testResources>
         <plugins>
+        
+        <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>${maven-release-plugin.version}</version>
+        <configuration>
+            <scmCommentPrefix>[ci skip]</scmCommentPrefix>
+            <tagNameFormat>@{project.version}</tagNameFormat>
+        </configuration>
+        </plugin>
+        
+        
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
