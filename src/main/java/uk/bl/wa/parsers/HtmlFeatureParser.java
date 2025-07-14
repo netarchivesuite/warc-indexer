@@ -66,6 +66,9 @@ public class HtmlFeatureParser extends AbstractParser {
             .internalInteger("Html-Parse-Error-Count");
     public static final int DEFAULT_MAX_PARSE_ERRORS = 1000;
 
+   //Remove port from url_norm 
+   public static final String CONF_LINKS_NORMALISE_REMOVE_PORT = "warc.index.extract.remove_port_in_url_norm";
+    
     // Setting this to true also adds the field url_norm to the Solr document in WARCIndexer
     public static final String CONF_LINKS_NORMALISE = "warc.index.extract.linked.normalise";
     public static final String CONF_LINKS_EXTRACT_IMAGE_LINKS = "warc.index.extract.linked.images";
