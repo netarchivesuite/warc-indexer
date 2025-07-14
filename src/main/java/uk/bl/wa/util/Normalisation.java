@@ -8,6 +8,7 @@ import org.jwat.common.Base32;
 
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.regex.Matcher;
@@ -52,6 +53,9 @@ public class Normalisation {
         return canon.urlStringToKey(host.trim()).replace("/", "");
     }
 
+    
+   
+    
     /**
      * Default and very aggressive normaliser. Shorthand for {@code canonicaliseURL(url, true, true)}.
      */
@@ -98,6 +102,7 @@ public class Normalisation {
         }
     }
 
+           
     /**
      * Multi-step URL canonicalization. Besides using the {@link AggressiveUrlCanonicalizer} from wayback.org it
      * normalises https → http,
@@ -111,7 +116,7 @@ public class Normalisation {
      *                          e.g. http://example.com/%2A.html → http://example.com/*.html
      *                          If false, valid %-escapes are kept as-is.
      */
-    public static String canonicaliseURL(String url, boolean allowHighOrder, boolean createUnambiguous) {
+    public static String canonicaliseURL(String url, boolean allowHighOrder, boolean createUnambiguous){
         // Basic normalisation, as shared with Heritrix, Wayback et al
         url = canon.canonicalize(url);
 
@@ -147,6 +152,14 @@ public class Normalisation {
             url += "/";
         }
 
+       //I doubt this need to be configurable. But add to config3.xml if there comes complaints. Config3.xml already bloated enough                
+       try {
+            url=removePort(url);        
+        }
+        catch(Exception e) {
+             log.warn("Error trying to remove port when normalising url:"+url);    
+         }        
+        
         return url;
     }
     private static Pattern DOMAIN_ONLY = Pattern.compile("https?://[^/]+");
@@ -306,5 +319,35 @@ public class Normalisation {
             bytes[i>>1] = (byte) Integer.parseInt(hex.substring(i, i+2), 16);
         }
         return bytes;
+    }
+    
+    public static String removePort(String inputUrl) throws MalformedURLException {
+        
+        if (!inputUrl.startsWith("http://") || inputUrl.toLowerCase().startsWith("https://")) {
+            return inputUrl;
+        }
+        
+        URL url = new URL(inputUrl);
+        int port = url.getPort();
+
+        // If the port is -1 (i.e., not specified), return the URL as-is
+        if (port == -1) {
+            return inputUrl;
+        }
+
+        // Reconstruct URL without the port. Important this cover all cases.
+        String cleanedUrl = url.getProtocol() + "://" +
+                            url.getHost() +
+                            url.getPath();
+
+        if (url.getQuery() != null) {
+            cleanedUrl += "?" + url.getQuery();
+        }
+
+        if (url.getRef() != null) {
+            cleanedUrl += "#" + url.getRef();
+        }
+
+        return cleanedUrl;
     }
 }

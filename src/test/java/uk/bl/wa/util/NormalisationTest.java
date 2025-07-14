@@ -215,6 +215,24 @@ public class NormalisationTest {
     }
 
     @Test
+    public void testNormalisationRemovePort() throws Exception{
+       
+        final String[][] TESTS = new String[][]{
+            {"http://example.com/",  "http://example.com/"},
+            {"http://example.com:80/",   "http://example.com/"},
+            {"http://example.com:80/index.html",   "http://example.com/index.html"},
+            {"http://example.com:80/index.html?param1=test#test",   "http://example.com/index.html?param1=test#test"}, //param and anchor
+            {"https://example.com:444/index.html?param1=test&param2=test2#test#test2",   "http://example.com/index.html?param1=test&param2=test2#test#test2"}, //https+double param+Double anchor            
+            {"https://example.com:444/index.html?param1=test?illegalparam=true", "http://example.com/index.html?param1=test?illegalparam=true"} //double ?
+        };        
+        for (String[] test: TESTS) {
+          assertEquals("The input '" + test[0] + "' url was not normalised as expected", 
+                  test[1], Normalisation.canonicaliseURL( test[0],true,true));
+        }        
+        
+    }
+    
+    @Test
     public void testBase16ToBytes() {
         final String B16 = "sha1:5a3311bde611032119d6080eebf83a4a3b3475ed";
         final String B32 = "sha1:LIZRDPPGCEBSCGOWBAHOX6B2JI5TI5PN";
