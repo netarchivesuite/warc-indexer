@@ -3,12 +3,14 @@
  */
 package uk.bl.wa.extract;
 
+import com.opencsv.CSVReader;
+import com.opencsv.exceptions.CsvValidationException;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
-import au.com.bytecode.opencsv.CSVReader;
 
 /**
  * @author Andrew Jackson <Andrew.Jackson@bl.uk>
@@ -27,7 +29,7 @@ public class PostcodeGeomapper {
             while ((nextLine = reader.readNext()) != null) {
                 postcodes.put(nextLine[1], nextLine[2]+","+nextLine[3]);
             }
-        } catch (IOException e) {
+        } catch (IOException | CsvValidationException e) {
             e.printStackTrace();
         }        
     }
