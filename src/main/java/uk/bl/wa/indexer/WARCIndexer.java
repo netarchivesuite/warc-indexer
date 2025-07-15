@@ -1,49 +1,9 @@
 package uk.bl.wa.indexer;
 
-import static org.archive.format.warc.WARCConstants.HEADER_KEY_ID;
-import static org.archive.format.warc.WARCConstants.HEADER_KEY_IP;
-
-/*
- * #%L
- * warc-indexer
- * $Id:$
- * $HeadURL:$
- * %%
- * Copyright (C) 2013 - 2025 The webarchive-discovery project contributors
- * %%
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as
- * published by the Free Software Foundation, either version 2 of the
- * License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public
- * License along with this program.  If not, see
- * <http://www.gnu.org/licenses/gpl-2.0.html>.
- * #L%
- */
-
-import static org.archive.format.warc.WARCConstants.HEADER_KEY_TYPE;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.ZoneId;
-import java.util.*;
-
+import com.google.common.collect.ImmutableList;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigRenderOptions;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpParser;
@@ -51,11 +11,7 @@ import org.apache.commons.httpclient.ProtocolException;
 import org.apache.commons.httpclient.URIException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.apache.http.HttpHeaders;
-import org.apache.logging.log4j.util.PropertiesPropertySource;
-import org.apache.logging.log4j.util.PropertiesUtil;
 import org.archive.format.warc.WARCConstants;
 import org.archive.io.ArchiveRecord;
 import org.archive.io.ArchiveRecordHeader;
@@ -72,12 +28,8 @@ import org.archive.wayback.resourceindex.filters.ExclusionFilter;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
-
-import com.google.common.collect.ImmutableList;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigRenderOptions;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import uk.bl.wa.analyser.TextAnalysers;
 import uk.bl.wa.analyser.WARCPayloadAnalysers;
 import uk.bl.wa.annotation.Annotations;
@@ -91,6 +43,26 @@ import uk.bl.wa.solr.SolrWebServer;
 import uk.bl.wa.util.InputStreamUtils;
 import uk.bl.wa.util.Instrument;
 import uk.bl.wa.util.Normalisation;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.TimeZone;
+
+import static org.archive.format.warc.WARCConstants.HEADER_KEY_ID;
+import static org.archive.format.warc.WARCConstants.HEADER_KEY_IP;
+import static org.archive.format.warc.WARCConstants.HEADER_KEY_TYPE;
 
 /**
  * 
@@ -159,18 +131,7 @@ public class WARCIndexer {
      */
     public WARCIndexer( Config conf ) throws NoSuchAlgorithmException {
         log.info("Initialising WARCIndexer...");
-        try {
-            Properties props = new Properties();
-            if (getClass().getResource("/log4j2-override.properties") != null) {
-                try (Reader resourceAsStream = new InputStreamReader(getClass().getResourceAsStream(
-                        "/log4j2-override.properties"), StandardCharsets.UTF_8)) {
-                    props.load(resourceAsStream);
-                }
-            }
-            PropertiesUtil.getProperties().addPropertySource(new PropertiesPropertySource(props));
-        } catch (IOException e1) {
-            log.error("Failed to load log4j config from properties file.");
-        }
+
         solrFactory = SolrRecordFactory.createFactory(conf);
         // Optional configurations:
         this.extractText = conf.getBoolean( "warc.index.extract.content.text" );
