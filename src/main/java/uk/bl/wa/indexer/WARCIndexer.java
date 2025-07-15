@@ -54,7 +54,8 @@ import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.http.HttpHeaders;
-import org.apache.log4j.PropertyConfigurator;
+import org.apache.logging.log4j.util.PropertiesPropertySource;
+import org.apache.logging.log4j.util.PropertiesUtil;
 import org.archive.format.warc.WARCConstants;
 import org.archive.io.ArchiveRecord;
 import org.archive.io.ArchiveRecordHeader;
@@ -90,7 +91,6 @@ import uk.bl.wa.solr.SolrWebServer;
 import uk.bl.wa.util.InputStreamUtils;
 import uk.bl.wa.util.Instrument;
 import uk.bl.wa.util.Normalisation;
-import uk.bl.wa.util.RegexpReplacer;
 
 /**
  * 
@@ -161,13 +161,13 @@ public class WARCIndexer {
         log.info("Initialising WARCIndexer...");
         try {
             Properties props = new Properties();
-            if (getClass().getResource("/log4j-override.properties") != null) {
+            if (getClass().getResource("/log4j2-override.properties") != null) {
                 try (Reader resourceAsStream = new InputStreamReader(getClass().getResourceAsStream(
-                        "/log4j-override.properties"), StandardCharsets.UTF_8)) {
+                        "/log4j2-override.properties"), StandardCharsets.UTF_8)) {
                     props.load(resourceAsStream);
                 }
             }
-            PropertyConfigurator.configure(props);
+            PropertiesUtil.getProperties().addPropertySource(new PropertiesPropertySource(props));
         } catch (IOException e1) {
             log.error("Failed to load log4j config from properties file.");
         }
