@@ -163,7 +163,7 @@ public class SolrRecordFactory {
         StringBuilder sb = new StringBuilder();
 
         // Max values for the given field
-        int maxValues = config != null && config.hasPath(KEY_MAX_VALUES) ?
+        int maxValues = config != null && config.hasPath(KEY_MAX_VALUES) && ! "-1".equalsIgnoreCase(config.getString(KEY_MAX_VALUES)) ?
                 Math.toIntExact(config.getBytes(KEY_MAX_VALUES)) :
                 DEFAULT_MAX_VALUES;
         if (maxValues == 0) {
@@ -171,7 +171,7 @@ public class SolrRecordFactory {
         }
 
         // Max content length in characters
-        int maxLength = config != null && config.hasPath(KEY_MAX_LENGTH) ?
+        int maxLength = config != null && config.hasPath(KEY_MAX_LENGTH) && ! "-1".equalsIgnoreCase(config.getString(KEY_MAX_LENGTH)) ?
                 Math.toIntExact(config.getBytes(KEY_MAX_LENGTH)) :
                 DEFAULT_MAX_LENGTH;
         if (maxLength == 0) {
