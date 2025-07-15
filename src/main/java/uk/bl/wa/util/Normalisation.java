@@ -323,7 +323,8 @@ public class Normalisation {
     
     public static String removePort(String inputUrl) throws MalformedURLException {
         
-        if (!inputUrl.startsWith("http://") || inputUrl.toLowerCase().startsWith("https://")) {
+        //If not http or http return as is
+        if (!(inputUrl.toLowerCase().startsWith("http://") || inputUrl.toLowerCase().startsWith("https://"))) {
             return inputUrl;
         }
         
