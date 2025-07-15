@@ -217,20 +217,43 @@ public class NormalisationTest {
     @Test
     public void testNormalisationRemovePort() throws Exception{
        
+        //When calling the removePort method the URL has already been partly normalised (https > http and lowercase)
+        final String[][] TESTS = new String[][]{
+            {"http://EXample.com/",  "http://example.com/"}, //2 uppercase
+            {"http://example.com:80/",   "http://example.com/"},
+            {"http://example.com:80/index.html",   "http://example.com/index.html"},
+            {"http://example.com:80/index.html?param1=test#test",   "http://example.com/index.html?param1=test#test"}, //param and anchor
+            {"https://example.com:444/index.html?param1=test&param2=test2#test#test2",   "http://example.com/index.html?param1=test&param2=test2#test#test2"}, //https+double param+Double anchor            
+            {"https://example.com:444/INDEX.HTML?param1=test?illegalparam=true", "http://example.com/index.html?param1=test?illegalparam=true"} //double ?
+        };        
+        for (String[] test: TESTS) {
+          assertEquals("The input '" + test[0] + "' url was not normalised as expected", 
+                  test[1], Normalisation.canonicaliseURL( test[0],true,true)); 
+        }        
+        
+    }
+    @Test
+    public void testRemovePort() throws Exception{
+       
+        //Direct test of the remove port method. The URL has not been partly normalised already. (lower case and https -> http)
         final String[][] TESTS = new String[][]{
             {"http://example.com/",  "http://example.com/"},
             {"http://example.com:80/",   "http://example.com/"},
             {"http://example.com:80/index.html",   "http://example.com/index.html"},
             {"http://example.com:80/index.html?param1=test#test",   "http://example.com/index.html?param1=test#test"}, //param and anchor
-            {"https://example.com:444/index.html?param1=test&param2=test2#test#test2",   "http://example.com/index.html?param1=test&param2=test2#test#test2"}, //https+double param+Double anchor            
-            {"https://example.com:444/index.html?param1=test?illegalparam=true", "http://example.com/index.html?param1=test?illegalparam=true"} //double ?
+            {"https://example.com:444/index.html?param1=test&param2=test2#test#test2",   "https://example.com/index.html?param1=test&param2=test2#test#test2"}, //https+double param+Double anchor            
+            {"https://example.com:444/index.html?param1=test?illegalparam=true", "https://example.com/index.html?param1=test?illegalparam=true"} //double ?
         };        
         for (String[] test: TESTS) {
           assertEquals("The input '" + test[0] + "' url was not normalised as expected", 
-                  test[1], Normalisation.canonicaliseURL( test[0],true,true));
+                  test[1], Normalisation.removePort( test[0]));
         }        
         
     }
+
+    
+    
+    
     
     @Test
     public void testBase16ToBytes() {
