@@ -217,6 +217,7 @@ public class WARCIndexerCommand {
                                         doc.getFieldValue(SolrFields.SOLR_URL_TYPE).equals(SolrFields.SOLR_URL_TYPE_SLASHPAGE))) {
                         docConsumer.add(doc);
                         recordCount++;
+                        //System.out.println(doc.getSolrDocument()); Will log every solr document to output. Only for debugging
                     }
                 } else {
                     log.debug("No document produced by record: " + type + " for url " + url + " from " + 

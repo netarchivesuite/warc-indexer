@@ -585,13 +585,14 @@
             <version>1.1.0</version>
         </dependency>
         
-        <!--- Seems to can be removed. Need more testing (Thomas Egense)
+       
+       <!-- Can not be removed. Some solr fields will not be populated. But project can build without it -->
 		<dependency>
 			<groupId>org.apache.lucene</groupId>
 			<artifactId>lucene-core</artifactId>
 			<version>8.7.0</version>
 		</dependency>
-		-->
+	
 		
 		<!-- Used for Language detection -->
 		<dependency>
