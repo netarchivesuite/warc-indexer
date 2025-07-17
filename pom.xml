@@ -87,6 +87,7 @@
                             <resource>log4j2.xml</resource>
                             <file>src/main/resources/log4j2.xml</file>
                         </transformer>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                     </transformers>
                 </configuration>
                 <executions>
@@ -181,7 +182,6 @@
 
 
     <dependencies>
-
         <!--Common modules start-->
         <dependency>
             <groupId>commons-io</groupId>
@@ -485,6 +485,8 @@
             <artifactId>langid-java</artifactId>
             <version>1.0.0</version>
         </dependency>
+
+
 
         <!--TESTING-->
         <!-- dependency needed for Solr integration test -->
