@@ -4,6 +4,21 @@
 package uk.bl.wa.annotation;
 
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Joiner;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import org.apache.commons.codec.binary.Base64;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
@@ -18,22 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.apache.solr.common.util.Base64;
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.JDOMException;
-import org.jdom.input.SAXBuilder;
-
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Joiner;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 /**
  * 
@@ -113,7 +112,7 @@ public class AnnotationsFromAct {
         credentials.append( ":" );
         credentials.append( loginConf.getString( "act.password" ) );
         connection.setRequestProperty("Authorization", "Basic "
-                + Base64.byteArrayToBase64(credentials.toString().getBytes()));
+                + Base64.encodeBase64String(credentials.toString().getBytes()));
         connection.setRequestProperty("Content-Type", "text/plain");
 
         Scanner scanner;

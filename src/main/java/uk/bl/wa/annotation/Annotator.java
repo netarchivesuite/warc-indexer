@@ -58,7 +58,7 @@ import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
 import org.archive.url.UsableURIFactory;
 import org.archive.util.SurtPrefixSet;
-import org.jdom.JDOMException;
+import org.jdom2.JDOMException;
 
 import uk.bl.wa.indexer.WARCIndexer;
 import uk.bl.wa.solr.SolrFields;
