@@ -1,16 +1,14 @@
-
-**NOTE** Generally, we only add terms to the Solr schema, so it should usually be compatible with previous versions (i.e. clients should be able to query across both without modification). However, there are been a small number of fixes which unfortunately required breaking changes you may need to be aware of or work-around. e.g. [hash becomes single-valued](https://github.com/ukwa/webarchive-discovery/issues/95)... TBA...
-
-
-
+**NOTE** Generally, we only add terms to the Solr schema, so it should usually be compatible with previous versions (i.e. clients should be able to query across both without modification). However, there are been a small number of fixes which unfortunately required breaking changes you may need to be aware of or work-around. e.g. [hash becomes single-valued](https://github.com/ukwa/webarchive-discovery/issues/95) from 3.0.0 to 3.1.0
 
 Unreleased
 ----------
 * Remove default value for disable-commit. Closing https://github.com/ukwa/webarchive-discovery/issues/319
+ Thanks to @bnfleb (Leslie) for this fix.
 * Remove port number from url_norm. Closing: https://github.com/ukwa/webarchive-discovery/issues/284
 * Warc-indexer repository under transition from https://github.com/ukwa/webarchive-discovery/ to https://github.com/netarchivesuite/warc-indexer
-The warc-indexer is now a single stand alone maven module extracted from the /webarchive-discovery/  project. All commit history has been preserved
-* Next relelease will be 3.4.0  
+The warc-indexer is now a single stand alone maven module extracted from the /webarchive-discovery/ project. All commit history has been preserved.
+* Upgrade third party dependencies and complete rewrite of the maven packing shading into uber-jar. This removed several duplicate dependencies clashes and the uber-jar has shrunk from 175MB to 147MB. Thanks to @Asger-KB (Asger) for the PR:  https://github.com/netarchivesuite/warc-indexer/pull/3
+* Next release will be 3.4.0 and will require extensive testing and performance measuring. No breaking changes are expected.
 
 3.3.1
 -----

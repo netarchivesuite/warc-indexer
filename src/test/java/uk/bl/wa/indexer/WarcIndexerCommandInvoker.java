@@ -5,6 +5,9 @@ import java.io.File;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 
+/** 
+ * This class can be used when debugging into a full run of the warc-indexer since it will run in the same JVM.   
+ */
 public class WarcIndexerCommandInvoker {
     public static void main(String[] args) throws NoSuchAlgorithmException, IOException, TransformerException {
         WARCIndexerCommand.main(new String[]{
