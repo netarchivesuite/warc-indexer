@@ -487,7 +487,6 @@
         </dependency>
 
 
-
         <!--TESTING-->
         <!-- dependency needed for Solr integration test -->
         <dependency>
@@ -510,5 +509,6 @@
             <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
+               
     </dependencies>
 </project>
