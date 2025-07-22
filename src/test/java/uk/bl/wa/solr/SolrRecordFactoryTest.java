@@ -75,4 +75,34 @@ public class SolrRecordFactoryTest {
         }
 
     }
+    
+
+    @Test
+    public void testFieldAdjuster() {
+        URL ref = Thread.currentThread().getContextClassLoader().getResource("reference.conf");
+        assertNotNull("The config reference.conf should exist", ref);
+        File configFilePath = new File(ref.getFile());
+        Config conf = ConfigFactory.parseFile(configFilePath);                
+        
+        SolrRecordFactory factory = SolrRecordFactory.createFactory(conf);        
+        String field="content_text";
+        String value;
+        String result;
+        
+        value="Very simple text";
+        result = factory.applyAdjustment(field, value);
+        assertEquals(value,result);
+        
+        value="Lots\rof\ncontrol characters"; //both has \n (new line) and \r ( carriage return)
+        result = factory.applyAdjustment(field, value);
+        assertEquals("Lots of control characters",result);
+        
+        value="Some$special#characters"; //these are not removed
+        result = factory.applyAdjustment(field, value);
+        assertEquals("Some$special#characters",result);
+        
+        
+    }
+    
+    
 }

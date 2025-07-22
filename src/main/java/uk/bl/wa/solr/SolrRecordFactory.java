@@ -180,7 +180,7 @@ public class SolrRecordFactory {
 
         // Remove control characters
         if (isEnabled(config, KEY_REMOVE_CONTROL_CHARACTERS, DEFAULT_REMOVE_CONTROL_CHARACTERS)) {
-            pipeline = pipeline.andThen(s -> CNTRL_PATTERN.matcher(s).replaceAll(""));
+            pipeline = pipeline.andThen(s -> CNTRL_PATTERN.matcher(s).replaceAll(" ")); //If replaced with empty string, some words will be concatenated without space.
             sb.append(sb.length() == 0 ? "" : ", ").append("remove_control_characters");
         }
 

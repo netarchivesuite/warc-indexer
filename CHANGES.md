@@ -9,6 +9,7 @@ Unreleased
 The warc-indexer is now a single stand alone maven module extracted from the /webarchive-discovery/ project. All commit history has been preserved.
 * Upgrade third party dependencies and complete rewrite of the maven packing shading into uber-jar. This removed several duplicate dependencies clashes and the uber-jar has shrunk from 175MB to 147MB. Thanks to @Asger-KB (Asger) for the PR:  https://github.com/netarchivesuite/warc-indexer/pull/3
 * Next release will be 3.4.0 and will require extensive testing and performance measuring. No breaking changes are expected.
+* Fixed (regression error?) that sometimes words where concatenated without white space from tika analysis.
 
 3.3.1
 -----
