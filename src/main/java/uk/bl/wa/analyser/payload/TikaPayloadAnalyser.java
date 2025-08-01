@@ -263,7 +263,10 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
         if( embedded == null )
             embedded = new NonRecursiveEmbeddedDocumentExtractor(context);
         context.set( EmbeddedDocumentExtractor.class, embedded );
-        
+
+        //If not set, you will get a NullPointer from ParseRunner.run() as Tika tries to perform OCR on PDF files
+        context.set ( Parser.class, tika.getParser());
+
         try {
             final long parseStart = System.nanoTime();
             ParseRunner runner = new ParseRunner( source, tika.getParser(), tikainput, this.getHandler( content ), metadata, context );
