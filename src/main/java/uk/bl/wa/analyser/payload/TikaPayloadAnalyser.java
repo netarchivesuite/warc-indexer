@@ -260,8 +260,9 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
         StringWriter content = new StringWriter();
         
         // Override the recursive parsing:
-        if( embedded == null )
-            embedded = new NonRecursiveEmbeddedDocumentExtractor(context);
+        if( embedded == null ) {
+           embedded = new NonRecursiveEmbeddedDocumentExtractor(context);
+        }
         context.set( EmbeddedDocumentExtractor.class, embedded );
 
         //If not set, you will get a NullPointer from ParseRunner.run() as Tika tries to perform OCR on PDF files

@@ -7,9 +7,15 @@ Unreleased
 * Remove port number from url_norm. Closing: https://github.com/ukwa/webarchive-discovery/issues/284
 * Warc-indexer repository under transition from https://github.com/ukwa/webarchive-discovery/ to https://github.com/netarchivesuite/warc-indexer
 The warc-indexer is now a single stand alone maven module extracted from the /webarchive-discovery/ project. All commit history has been preserved.
-* Upgrade third party dependencies and complete rewrite of the maven packing shading into uber-jar. This removed several duplicate dependencies clashes and the uber-jar has shrunk from 175MB to 147MB. Thanks to @Asger-KB (Asger) for the PR:  https://github.com/netarchivesuite/warc-indexer/pull/3
-* Next release will be 3.4.0 and will require extensive testing and performance measuring. No breaking changes are expected.
+* Upgrade third party dependencies and complete rewrite of the maven packing shading into uber-jar. This removed several duplicate dependencies clashes and the uber-jar has shrunk from 175MB to 137MB. Thanks to @Asger-KB (Asger) for the PR:  https://github.com/netarchivesuite/warc-indexer/pull/3
 * Fixed (regression error?) that sometimes words where concatenated without white space from tika analysis.
+* Fixed PDF text extraction. Often (~5% of PDF's) no text was extracted and document had content_text_length:0 .Thanks to
+@Asger-KB (Asger) for help with the tricky debugging required to find and fix it in PR: https://github.com/netarchivesuite/warc-indexer/pull/5
+* Minor change in top private domain calculation (domain field) due to com.google.guava upgrade. 
+For example is foo.blogspot.dk no longer top private domain while foo.blogspot.com still is. 
+See: https://github.com/google/guava/wiki/InternetDomainNameExplained for more details.
+The host field is unchanged.
+* Next release will be 3.4.0 and will require extensive testing and performance measuring. No breaking changes are expected.
 
 3.3.1
 -----
