@@ -111,7 +111,12 @@ public class HTMLAnalyser extends AbstractPayloadAnalyser {
           String[] imageLinks = metadata.getValues( HtmlFeatureParser.IMAGE_LINKS );
           if (imageLinks != null){            
             for( String link : imageLinks ) { 
-              String urlNorm  = normaliseLinks ? Normalisation.canonicaliseURL(link) : link;
+
+                String urlNorm  = normaliseLinks ? Normalisation.canonicaliseURL(link) : link;
+                if (urlNorm.startsWith("data:") || urlNorm.length() > 2048){
+                    log.info("Ignoring image link. Starting with 'data:' or more than 2048 characters:"+urlNorm);
+                    continue;
+                }
               solr.addField( SolrFields.SOLR_LINKS_IMAGES, urlNorm);
             }
           }                

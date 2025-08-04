@@ -61,7 +61,11 @@ public class LinkExtractorTest {
                 {"http://fourth.whatever.example.com/",    "fourth.whatever.example.com",    "example.com"},
                 {"http://fourth.whatever.googleapis.com/", "fourth.whatever.googleapis.com", "whatever.googleapis.com"},
                 {"http://fourth.whatever.cloudfront.net",  "fourth.whatever.cloudfront.net", "whatever.cloudfront.net"},
-                {"http://fourth.whatever.blogspot.dk/",    "fourth.whatever.blogspot.dk",    "whatever.blogspot.dk"}
+
+                //With newest version of Guava blogspot.dk is no longer top private domain
+                //See: https://github.com/google/guava/wiki/InternetDomainNameExplained
+                //{"http://foo.blogspot.dk/",    "foo.blogspot.dk",    "foo.blogspot.dk"},
+                {"http://fourth.whatever.blogspot.com/",    "fourth.whatever.blogspot.com",    "whatever.blogspot.com"}
         };
 
         for (String[] test: TESTS) {

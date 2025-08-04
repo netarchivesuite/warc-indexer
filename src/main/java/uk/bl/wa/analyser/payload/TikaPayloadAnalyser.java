@@ -226,8 +226,9 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
 
         // Also pass URL as metadata to allow extension hints to work:
         Metadata metadata = new Metadata();
-        if( url != null )
+        if( url != null ) {
             metadata.set( TikaCoreProperties.RESOURCE_NAME_KEY, url);
+        }
 
         final long detectStart = System.nanoTime();
         StringBuilder detected = new StringBuilder();
@@ -260,10 +261,14 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
         StringWriter content = new StringWriter();
         
         // Override the recursive parsing:
-        if( embedded == null )
-            embedded = new NonRecursiveEmbeddedDocumentExtractor(context);
+        if( embedded == null ) {
+           embedded = new NonRecursiveEmbeddedDocumentExtractor(context);
+        }
         context.set( EmbeddedDocumentExtractor.class, embedded );
-        
+
+        //If not set, you will get a NullPointer from ParseRunner.run() as Tika tries to perform OCR on PDF files
+        context.set ( Parser.class, tika.getParser());
+
         try {
             final long parseStart = System.nanoTime();
             ParseRunner runner = new ParseRunner( source, tika.getParser(), tikainput, this.getHandler( content ), metadata, context );
@@ -338,24 +343,23 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
             String contentType = metadata.get( Metadata.CONTENT_TYPE );
             solr.addField(SolrFields.SOLR_CONTENT_TYPE, contentType);
             solr.addField(SolrFields.SOLR_TITLE, metadata.get(DublinCore.TITLE));
-            solr.addField(SolrFields.SOLR_DESCRIPTION,
-                    metadata.get(DublinCore.DESCRIPTION));
+            solr.addField(SolrFields.SOLR_DESCRIPTION, metadata.get(DublinCore.DESCRIPTION));
             solr.addField(SolrFields.SOLR_KEYWORDS, metadata.get("keywords"));
-            solr.addField(SolrFields.SOLR_AUTHOR,
-                    metadata.get(DublinCore.CREATOR));
-            solr.addField(SolrFields.CONTENT_ENCODING,
-                    metadata.get(Metadata.CONTENT_ENCODING));
+            solr.addField(SolrFields.SOLR_AUTHOR, metadata.get(DublinCore.CREATOR));
+            solr.addField(SolrFields.CONTENT_ENCODING, metadata.get(Metadata.CONTENT_ENCODING));
 
             // Parse out any embedded date that can act as a created/modified date.
             // I was not able find a single example where both created and modified where defined and different. I single field is sufficient.
             String date = null;
-            if( metadata.get( TikaCoreProperties.CREATED ) != null)
+            if( metadata.get( TikaCoreProperties.CREATED ) != null) {
                 date = metadata.get( TikaCoreProperties.CREATED );
-
-            if( metadata.get( TikaCoreProperties.METADATA_DATE ) != null)
+            }
+            if( metadata.get( TikaCoreProperties.METADATA_DATE ) != null) {
                 date = metadata.get( TikaCoreProperties.METADATA_DATE );
-            if( metadata.get( TikaCoreProperties.MODIFIED ) != null)
+            }
+            if( metadata.get( TikaCoreProperties.MODIFIED ) != null) {
                 date = metadata.get( TikaCoreProperties.MODIFIED );
+            }
             if( date != null ) {
                 DateTimeFormatter df = ISODateTimeFormat.dateTimeParser();
                 DateTime edate = null;
