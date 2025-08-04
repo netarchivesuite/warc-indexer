@@ -15,6 +15,7 @@ The warc-indexer is now a single stand alone maven module extracted from the /we
 For example is foo.blogspot.dk no longer top private domain while foo.blogspot.com still is. 
 See: https://github.com/google/guava/wiki/InternetDomainNameExplained for more details.
 The host field is unchanged.
+* Fixed regression error. Image links > 2048 characters are ignored and will not give solr indexing error.  This was often data: base64 character encoded images or invalid html.
 * Next release will be 3.4.0 and will require extensive testing and performance measuring. No breaking changes are expected.
 
 3.3.1
