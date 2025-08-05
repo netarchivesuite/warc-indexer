@@ -1,7 +1,7 @@
 IMPORTANT!!!
 ============
 
-This warc-indexer repository has been moved and extracted from the multi maven module project [webarchive-discovery](https://github.com/ukwa/webarchive-discovery) maintained by British Library to [netarchivesuite](https://github.com/netarchivesuite/) maintained by the Royal Danish Librry.
+This warc-indexer repository has been moved and extracted from the multi maven module project [webarchive-discovery](https://github.com/ukwa/webarchive-discovery) maintained by British Library to [netarchivesuite](https://github.com/netarchivesuite/) maintained by the Royal Danish Library.
 
 Many third part dependencies updated. Complete rewrite of building the shaded uber-jar.
 
