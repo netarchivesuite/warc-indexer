@@ -1,14 +1,14 @@
 IMPORTANT!!!
 ============
-This warc-indexer repository is still in the process of being extracted from the multi maven module project https://github.com/ukwa/webarchive-discovery maintained by British Library.
 
-It is now a single maven project and will further development will be in this repository after the transition is finished. Many third part dependencies updated. Complete rewrite of building the shaded uber-jar.
+This warc-indexer repository has been moved and extracted from the multi maven module project [webarchive-discovery](https://github.com/ukwa/webarchive-discovery) maintained by British Library to [netarchivesuite](https://github.com/netarchivesuite/) maintained by the Royal Danish Librry.
+
+Many third part dependencies updated. Complete rewrite of building the shaded uber-jar.
 
 The warc-indexer.with-dependencies.jar file has been tested to produce identical results as the warc-indexer from BL. But will still require further testing and performance measuring before the next release 
 which will be 3.4.0.
 
 The Jira issues for the Warc-indexer has not been moved yet and can be found here: https://github.com/ukwa/webarchive-discovery/issues
-
 
 
 WARC Indexer
