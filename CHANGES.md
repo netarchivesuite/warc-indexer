@@ -17,6 +17,7 @@ See: https://github.com/google/guava/wiki/InternetDomainNameExplained for more d
 The host field is unchanged.
 * Fixed regression error. Image links > 2048 characters are ignored and will not give solr indexing error.  This was often data: base64 character encoded images or invalid html.
 * Next release will be 3.4.0 and will require extensive testing and performance measuring. No breaking changes are expected.
+* Fix invalid http status code in old ARC files. The value "200Ok" was used by some webservers. Error in parsing status to an integer will default to http status 200. The bug stopped indexing of that ARC file so all subsequent records was not indexed.  Closing https://github.com/netarchivesuite/warc-indexer/issues/8
 
 3.3.1
 -----

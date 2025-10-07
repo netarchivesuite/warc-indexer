@@ -334,7 +334,8 @@ public class WARCIndexer {
                     return solr;
                 }
 
-                solr.setField(SolrFields.SOLR_STATUS_CODE, httpHeader.getHttpStatus());
+                int status = parseHttpStatus(httpHeader.getHttpStatus());
+                solr.setField(SolrFields.SOLR_STATUS_CODE, ""+status);
 
                 // Skip recording non-content URLs (i.e. 2xx responses only please):
                 if(!checkResponseCode(httpHeader.getHttpStatus())) {
@@ -846,6 +847,22 @@ public class WARCIndexer {
         return false;
     }
 
+    
+    /**
+     * In old arc files the http status was not always according to spec.
+     * A common error is "200Ok" instead of "200 OK" etc.
+     */
+    private int parseHttpStatus(String httpStatus) {
+        try {
+            int status = Integer.parseInt(httpStatus);
+            return status;
+            }
+        catch(Exception e) {
+         log.warn("Http status not integer:"+httpStatus);                        
+        }
+        return 200;
+    }
+    
     private boolean checkExclusionFilter( String uri ) {
         // Default to no exclusions:
         if( smef == null )
