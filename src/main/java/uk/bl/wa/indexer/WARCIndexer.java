@@ -693,8 +693,13 @@ public class WARCIndexer {
                 if (h.getName().equalsIgnoreCase(HttpHeaders.SERVER))
                     solr.addField( SolrFields.SERVER, h.getValue() );
                 if (h.getName().equalsIgnoreCase(HttpHeaders.LOCATION)){
-                    String location = h.getValue(); //This can be relative and must be resolved full                  
-                       solr.setField(SolrFields.REDIRECT_TO_NORM,  Normalisation.resolveRelative(targetUrl, location));
+                    String location = h.getValue(); //This can be relative and must be resolved full
+                    String url_redirect=Normalisation.resolveRelative(targetUrl, location);
+                    if (url_redirect.length() > 2048) {
+                        log.warn("Redirect URL > 2048 character, using first 2048 characters only:"+url_redirect);
+                        url_redirect=url_redirect.substring(0,2048);                        
+                    }
+                    solr.setField(SolrFields.REDIRECT_TO_NORM,  url_redirect);
                 }
                                                
             }
