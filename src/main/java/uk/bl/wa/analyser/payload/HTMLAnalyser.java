@@ -126,7 +126,11 @@ public class HTMLAnalyser extends AbstractPayloadAnalyser {
         String[] links_list = metadata.getValues( HtmlFeatureParser.LINK_LIST );
         if( links_list != null ) {
             String lhost, ldomain, lsuffix;
-            for( String link : links_list ) {
+            for( String link : links_list ) {            
+                if (link.length() >2048) {         
+                  log.warn("Skip parsing link > 2048 characters. Link:"+link);
+                  continue;
+                }
                 lhost = LinkExtractor.extractHost( link );
                 if( !lhost.equals( LinkExtractor.MALFORMED_HOST ) ) {
                     hosts.add(lhost);
