@@ -38,7 +38,7 @@ public class LinkExtractor {
             // Extract domain:
             String host = uri.getHost();
             // RFC-952 and RFC-1123: 255 characters is the limit according to specs
-            if( host == null || !HOST_PATTERN.matcher(host).matches() || host.length() > 255) {
+            if( host == null || host.length() > 255 || !HOST_PATTERN.matcher(host).matches()) { 
                 return MALFORMED_HOST;
             }
             return host;
