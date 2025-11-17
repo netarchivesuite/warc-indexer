@@ -189,6 +189,10 @@ public class HTMLAnalyser extends AbstractPayloadAnalyser {
             String[] de = metadata.getValues( HtmlFeatureParser.DISTINCT_ELEMENTS );
             if( de != null ) {
                 for( String e : de ) {
+                    if (e != null && e.length() > 1024) {
+                        log.warn("elements_used field  > 1024 characters. Only first 1024 characters will be used. Value="+e );
+                        e=e.substring(0,1024);
+                    }
                     solr.addField( SolrFields.ELEMENTS_USED, e );
                 }
             }

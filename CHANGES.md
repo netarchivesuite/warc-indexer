@@ -19,6 +19,7 @@ The host field is unchanged.
 * Next release will be 3.4.0 and will require extensive testing and performance measuring. No breaking changes are expected.
 * Fix invalid http status code in old ARC files. The value "200Ok" was used by some webservers. Error in parsing status to an integer will default to http status 200. The bug stopped indexing of that ARC file so all subsequent records was not indexed.  Closing https://github.com/netarchivesuite/warc-indexer/issues/8
 * Redirect URLS in solr field 'redirect_to_norm' now limited to 2048 characters. Some crawler traps produced urls > 32K characters.
+* elements_used field now only takes first 1024 characters. This happens very rare due to misuse of the <rel> tag.
 
 3.3.1
 -----
