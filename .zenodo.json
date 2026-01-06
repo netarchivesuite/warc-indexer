@@ -1,0 +1,45 @@
+{
+  "title": "WARC Indexer",
+  "description": "A tool for indexing web archive (WARC and ARC) files using Apache Tika and Apache Solr. This product runs Apache Tika on WARC and ARC records and extracts suitable metadata for indexing.",
+  "version": "3.4.0-SNAPSHOT",
+  "upload_type": "software",
+  "keywords": [
+    "web archiving",
+    "WARC",
+    "ARC",
+    "indexing",
+    "Apache Solr",
+    "Apache Tika",
+    "digital preservation",
+    "metadata extraction"
+  ],
+  "license": "GPL-2.0",
+  "creators": [
+    {
+      "name": "Jackson, Andy",
+      "affiliation": "British Library"
+    },
+    {
+      "name": "Hoggarth, Gil",
+      "affiliation": "British Library"
+    },
+    {
+      "name": "Egense, Thomas",
+      "affiliation": "Royal Danish Library"
+    },
+    {
+      "name": "Eskildsen, Toke",
+      "affiliation": "Royal Danish Library"
+    }
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/netarchivesuite/warc-indexer",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    }
+  ],
+  "language": "eng",
+  "access_right": "open"
+}
+
