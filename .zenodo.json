@@ -1,7 +1,7 @@
 {
   "title": "WARC Indexer",
   "description": "A tool for indexing web archive (WARC and ARC) files using Apache Tika and Apache Solr. This product runs Apache Tika on WARC and ARC records and extracts suitable metadata for indexing.",
-  "version": "3.4.0-SNAPSHOT",
+  "version": "3.4.0",
   "upload_type": "software",
   "keywords": [
     "web archiving",
