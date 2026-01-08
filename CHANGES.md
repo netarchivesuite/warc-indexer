@@ -27,7 +27,8 @@ Unreleased
 * Redirect URLS in solr field 'redirect_to_norm' now limited to 2048 characters. Some crawler traps produced urls > 32K characters.
 * Skip parsing href links > 2048 characters. Also check host length <256 characters before parsing host. Invalid urls with 100+ dots (.) in host could give StackOverflowError in pattern matching.
 * Elements_used field now only takes first 1024 characters. Can happen when misusing the 'rel' HTML tag with 100's of keywords.
-* Add zenodo file by @VictorHarbo in https://github.com/netarchivesuite/warc-indexer/pull/10
+* Add zenodo file by @VictorHarbo in https://github.com/netarchivesuite/warc-indexer/pull/10<br>
+[![DOI](https://zenodo.org/badge/1013711589.svg)](https://doi.org/10.5281/zenodo.18183415)
 
 3.3.1
 -----
