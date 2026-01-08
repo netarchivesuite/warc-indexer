@@ -14,6 +14,7 @@ The Jira issues for the Warc-indexer has not been moved yet and can be found her
 WARC Indexer
 ============
 
+[![DOI](https://zenodo.org/badge/1013711589.svg)](https://doi.org/10.5281/zenodo.18183415)
 
 
 This code runs Apache Tika on WARC and ARC records and extracts suitable metadata for indexing.
