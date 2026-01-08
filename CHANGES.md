@@ -1,26 +1,32 @@
 **NOTE** Generally, we only add terms to the Solr schema, so it should usually be compatible with previous versions (i.e. clients should be able to query across both without modification). However, there are been a small number of fixes which unfortunately required breaking changes you may need to be aware of or work-around. e.g. [hash becomes single-valued](https://github.com/ukwa/webarchive-discovery/issues/95) from 3.0.0 to 3.1.0
 
 Unreleased
-----------
+
+
+3.4.0
+-----
+* No breaking changes in the 3.4.0 release. Several rare crash bugs has been fixes so whole ARC/WARC-file will be indexed. New packaging.<br>
+  Many of rare ARC/WARC parsing errors has also been fixed in JWARC (https://github.com/iipc/jwarc) when indexing to Outback CDX server.
+* Warc-indexer repository moved from https://github.com/ukwa/webarchive-discovery/ to https://github.com/netarchivesuite/warc-indexer
+* The warc-indexer is now a single stand alone maven module extracted from the /webarchive-discovery/ project. All commit history has been preserved.<br>
+  And the uber-jar has shrunk from 175MB to 137MB. Thanks to @Asger-KB (Asger) for the PR:  https://github.com/netarchivesuite/warc-indexer/pull/3<br>
+  Upgrade third party dependencies and complete rewrite of the maven packing shading into uber-jar. This removed several duplicate dependencies clashes. <br>
+  Thanks @Asger-KB (Asger) for the new maven package build.
 * Remove default value for disable-commit. Closing https://github.com/ukwa/webarchive-discovery/issues/319
  Thanks to @bnfleb (Leslie) for this fix.
 * Remove port number from url_norm. Closing: https://github.com/ukwa/webarchive-discovery/issues/284
-* Warc-indexer repository under transition from https://github.com/ukwa/webarchive-discovery/ to https://github.com/netarchivesuite/warc-indexer
-The warc-indexer is now a single stand alone maven module extracted from the /webarchive-discovery/ project. All commit history has been preserved.
-* Upgrade third party dependencies and complete rewrite of the maven packing shading into uber-jar. This removed several duplicate dependencies clashes and the uber-jar has shrunk from 175MB to 137MB. Thanks to @Asger-KB (Asger) for the PR:  https://github.com/netarchivesuite/warc-indexer/pull/3
 * Fixed (regression error?) that sometimes words where concatenated without white space from tika analysis.
-* Fixed PDF text extraction. Often (~5% of PDF's) no text was extracted and document had content_text_length:0 .Thanks to
-@Asger-KB (Asger) for help with the tricky debugging required to find and fix it in PR: https://github.com/netarchivesuite/warc-indexer/pull/5
+* Fixed PDF text extraction. Often (~5% of PDF's) no text was extracted and document had content_text_length:0 . <br>
+  Thanks @Asger-KB (Asger) for help with the tricky debugging required to find and fix it in PR: https://github.com/netarchivesuite/warc-indexer/pull/5
 * Minor change in top private domain calculation (domain field) due to com.google.guava upgrade. 
-For example is foo.blogspot.dk no longer top private domain while foo.blogspot.com still is. 
-See: https://github.com/google/guava/wiki/InternetDomainNameExplained for more details.
-The host field is unchanged.
+  For example is foo.blogspot.dk no longer top private domain while foo.blogspot.com still is. <br>
+  See: https://github.com/google/guava/wiki/InternetDomainNameExplained for more details.<br>
+  The host field is unchanged.
 * Fixed regression error. Image links > 2048 characters are ignored and will not give solr indexing error.  This was often data: base64 character encoded images or invalid html.
-* Next release will be 3.4.0 and will require extensive testing and performance measuring. No breaking changes are expected.
 * Fix invalid http status code in old ARC files. The value "200Ok" was used by some webservers. Error in parsing status to an integer will default to http status 200. The bug stopped indexing of that ARC file so all subsequent records was not indexed.  Closing https://github.com/netarchivesuite/warc-indexer/issues/8
 * Redirect URLS in solr field 'redirect_to_norm' now limited to 2048 characters. Some crawler traps produced urls > 32K characters.
 * Skip parsing href links > 2048 characters. Also check host length <256 characters before parsing host. Invalid urls with 100+ dots (.) in host could give StackOverflowError in pattern matching.
-* elements_used field now only takes first 1024 characters. This happens very rare due to misuse of the 'rel' HTML tag tag.
+* Elements_used field now only takes first 1024 characters. Can happen when misusing the 'rel' HTML tag with 100's of keywords.
 
 3.3.1
 -----
