@@ -31,6 +31,8 @@ import java.io.InputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.commons.io.IOExceptionList;
+import org.apache.commons.io.IOIndexedException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.mime.MediaType;
@@ -119,6 +121,10 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
                         "WARCPayloadAnalyzers.analyze#droid_type="
                                 + mt.toString(),
                         droidStart);
+            }
+            catch(IOIndexedException | IOExceptionList  io) {
+                //This is to prevent long stacktraces on windows when indexing. Delete temp file/directory can fail because of slow windows filelock
+                log.warn("IO exception(ignore if failed to delete temp dir/files on windows):"+io.getMessage());
             } catch (Exception i) {
                 // Note that DROID complains about some URLs with an
                 // IllegalArgumentException.
