@@ -420,6 +420,7 @@ public class WARCIndexer {
             // -----------------------------------------------------
 
             processText(solr, isTextIncluded);
+                    
         }
         Instrument.timeRel("WARCIndexerCommand.parseWarcFiles#solrdocCreation",
                      "WARCIndexer.extract#total", start);

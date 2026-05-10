@@ -223,7 +223,18 @@ public class WARCIndexerCommand {
                     log.debug("No document produced by record: " + type + " for url " + url + " from " + 
                         inFile.getName() + " @" + rec.getHeader().getOffset()); //All request records will log this. It is expected there is no document.
             }
+      
+              //Optional enrich 
+
+              //TODO handle if not exists, method takes no default value(!?)  
+              String enabledProptery="warc.enrich.enabled";
+              boolean hasProperty=conf.hasPath("warc.enrich.enabled");
+              System.out.println("has property:"+hasProperty);
+              boolean enrich_enabled=conf.getBoolean("warc.enrich.enabled");
+              System.out.println("enrich:"+enrich_enabled);                        
             }
+                
+      
             docConsumer.endWARC();
             Instrument.timeRel("WARCIndexerCommand.main#total",
                                "WARCIndexerCommand.parseWarcFiles#fullarcprocess", arcStart);
