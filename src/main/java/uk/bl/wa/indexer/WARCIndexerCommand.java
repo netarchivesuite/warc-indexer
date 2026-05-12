@@ -8,6 +8,7 @@ import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
@@ -141,6 +142,19 @@ public class WARCIndexerCommand {
             
             conf = ConfigFactory.parseFile(configFilePath);
         }
+        
+        //Set up external service solr field enricher if defined in property-file
+        ExternalServiceSolrFieldEnricher enrichService=null;
+        String enrichPropertyEnabled="warc.enrich.enabled";
+        boolean enrich_enabled=conf.getBoolean(enrichPropertyEnabled);
+        if (enrich_enabled) {            
+            List<String> solrFieldInRequest = conf.getStringList("warc.enrich.solrFieldsInRequest");
+            String serverUrl= conf.getString("warc.enrich.server_url");
+            enrichService = new ExternalServiceSolrFieldEnricher(serverUrl, solrFieldInRequest);       
+           log.info("Solr field enrich service initialised with url='{}' and using request fields='{}'", serverUrl, solrFieldInRequest);         
+        }
+ 
+        
 
         // FIXME DUMP CONFIG OPTIONS
         // ConfigPrinter.print(conf);
@@ -165,6 +179,9 @@ public class WARCIndexerCommand {
         Instrument.timeRel("WARCIndexerCommand.main#total",
                            "WARCIndexerCommand.parseWarcFiles#startup", start);
 
+     
+        
+        
         // Loop through each Warc files
         for (int arcsIndex = 0; arcsIndex < opts.inputFiles.length; arcsIndex++) {
             final long arcStart = System.nanoTime();
@@ -214,7 +231,8 @@ public class WARCIndexerCommand {
                                    "WARCIndexerCommand.parseWarcFiles#solrdocCreation", recordStart);
                 if (doc != null) {
                     if (!opts.onlyRootPages || (doc.getFieldValue(SolrFields.SOLR_URL_TYPE) != null &&
-                                        doc.getFieldValue(SolrFields.SOLR_URL_TYPE).equals(SolrFields.SOLR_URL_TYPE_SLASHPAGE))) {
+                                        doc.getFieldValue(SolrFields.SOLR_URL_TYPE).equals(SolrFields.SOLR_URL_TYPE_SLASHPAGE))) {                     
+                        enrichFromExternalService(conf, enrichService, doc); // If enabled in config.                                                
                         docConsumer.add(doc);
                         recordCount++;
                         //System.out.println(doc.getSolrDocument()); Will log every solr document to output. Only for debugging
@@ -224,14 +242,9 @@ public class WARCIndexerCommand {
                         inFile.getName() + " @" + rec.getHeader().getOffset()); //All request records will log this. It is expected there is no document.
             }
       
-              //Optional enrich 
+              
 
-              //TODO handle if not exists, method takes no default value(!?)  
-              String enabledProptery="warc.enrich.enabled";
-              boolean hasProperty=conf.hasPath("warc.enrich.enabled");
-              System.out.println("has property:"+hasProperty);
-              boolean enrich_enabled=conf.getBoolean("warc.enrich.enabled");
-              System.out.println("enrich:"+enrich_enabled);                        
+
             }
                 
       
@@ -246,6 +259,39 @@ public class WARCIndexerCommand {
 
         long endTime = System.currentTimeMillis();
         System.out.println("WARC Indexer Finished in " + ((endTime - startTime) / 1000.0) + " seconds.");
+    }
+
+    
+    /**
+     * This method will enrich or overwrite Solr fields with values from an external service just before submitting the document to solr.
+     * Can be enabled in the config3.xml by property: warc.enric.enabled=true
+     * The service will be called as a POST request with a JSON object with key/values from Solr fields. Defined as list in warc.enrich.solrFieldsInRequest 
+     * The JSON response (key-values) will overwrite Solr fields. Define which fields to overwrite in warc.enrich.solrFieldsInRequest.jsonFieldsInResponse  
+     */
+    private static void enrichFromExternalService(Config conf, ExternalServiceSolrFieldEnricher enrichService, SolrRecord doc) {
+        final long start = System.nanoTime();
+        Instrument.timeRel("WARCIndexer.extract#total","WARCIndexer.extract#external.service", start);
+        //Instrument.timeRel("WARCIndexerCommand.main#total","WARCIndexerCommand.enrich#startup", start);
+        //TODO handle if not exists, method takes no default value(!?)  
+        if(enrichService!= null) { //Will have been initialized at startup
+
+            List<String> solrFieldInRequest = conf.getStringList("warc.enrich.solrFieldsInRequest");
+            HashMap<String,String> jsonRequestParameters = new HashMap<String,String>();
+            try {
+                //Send parameters in request
+                for (String field : solrFieldInRequest) {       
+                    jsonRequestParameters.put(field, doc.getFieldAsString(field));                    
+                }                                                      
+                HashMap<String, String> solrFieldsValues = enrichService.extractEnrichFields(jsonRequestParameters);
+                //Add or overwrite solrfields
+                for (String field: solrFieldsValues.keySet()) {
+                    doc.setField(field,solrFieldsValues.get(field)); //will overwrite. (setField and not addField)
+                }                
+            }
+            catch(Exception e) {
+               log.error("Error enrich Solr field from service call. Request parameters:"+jsonRequestParameters +" Error:"+e.getMessage());
+            }                    
+        }
     }
     
 }

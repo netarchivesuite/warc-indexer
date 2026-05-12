@@ -1,6 +1,9 @@
 **NOTE** Generally, we only add terms to the Solr schema, so it should usually be compatible with previous versions (i.e. clients should be able to query across both without modification). However, there are been a small number of fixes which unfortunately required breaking changes you may need to be aware of or work-around. e.g. [hash becomes single-valued](https://github.com/ukwa/webarchive-discovery/issues/95) from 3.0.0 to 3.1.0
 
 Unreleased
+ * Added support for calling an external service to enrich solr fields. See the config3.xml 'enrich' property for documentation. <br>
+  Implementation is in the  ExternalServiceSolrFieldEnricher. The service will be called for each record in the WARC file.<br>
+  In the config3.xml see the property 'enrich' and it can be enabled. 
 
 
 3.4.0
