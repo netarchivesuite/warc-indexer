@@ -46,7 +46,7 @@ public class ExternalServiceSolrFieldEnricher {
     public static void main(String[] args) throws Exception{    
         //String url="http://localhost:8000/warc-safe/new_method";
         String url="http://localhost:8000/";
-        List<String>fieldsToExtract=  new ArrayList<String>(); // This is the fields that will be extracted from the response(if present)        
+        List<String> fieldsToExtract=  new ArrayList<String>(); // This is the fields that will be extracted from the response(if present)        
         fieldsToExtract.add("nsfw_probability");
         fieldsToExtract.add("is_nsfw");
         fieldsToExtract.add("is_virus");
