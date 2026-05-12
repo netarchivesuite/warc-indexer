@@ -270,10 +270,8 @@ public class WARCIndexerCommand {
      */
     private static void enrichFromExternalService(Config conf, ExternalServiceSolrFieldEnricher enrichService, SolrRecord doc) {
         final long start = System.nanoTime();
-        Instrument.timeRel("WARCIndexer.extract#total","WARCIndexer.extract#external.service", start);
-        //Instrument.timeRel("WARCIndexerCommand.main#total","WARCIndexerCommand.enrich#startup", start);
-        //TODO handle if not exists, method takes no default value(!?)  
-        if(enrichService!= null) { //Will have been initialized at startup
+        Instrument.timeRel("WARCIndexer.extract#total","WARCIndexer.extract#external.service", start);  
+        if(enrichService!= null) { //Will have been initialized at startup if enabled in config3.xml
 
             List<String> solrFieldInRequest = conf.getStringList("warc.enrich.solrFieldsInRequest");
             HashMap<String,String> jsonRequestParameters = new HashMap<String,String>();
