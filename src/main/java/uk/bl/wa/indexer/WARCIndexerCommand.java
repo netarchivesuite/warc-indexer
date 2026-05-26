@@ -103,7 +103,6 @@ public class WARCIndexerCommand {
 
         // Check if the text field is required for the output (explicit (-t), Elasticsearch or Solr)
         final boolean isTextRequired = opts.includeText || opts.solrUrl != null || opts.opensearchUrl != null;
-
         try {
             parseWarcFiles(opts, isTextRequired);
         } finally {
@@ -148,14 +147,16 @@ public class WARCIndexerCommand {
         String enrichPropertyEnabled="warc.enrich.enabled";
         boolean enrichDefined=conf.hasPath("warc.enrich.enabled");        
         if (enrichDefined && conf.getBoolean(enrichPropertyEnabled)) { //Defined and true                       
-            List<String> solrFieldInRequest = conf.getStringList("warc.enrich.solrFieldsInRequest");
+            List<String> jsonFields2SolrFieldsList = conf.getStringList("warc.enrich.jsonFields2SolrFields");
+                        
             String serverUrl= conf.getString("warc.enrich.server_url");
-            enrichService = new ExternalServiceSolrFieldEnricher(serverUrl, solrFieldInRequest);       
-           log.info("Solr field enrich service initialised with url='{}' and using request fields='{}'", serverUrl, solrFieldInRequest);         
+            List<String> solrField2JsonFields= conf.getStringList("warc.enrich.solrField2JsonFields");
+            
+            enrichService = new ExternalServiceSolrFieldEnricher(serverUrl, jsonFields2SolrFieldsList, solrField2JsonFields);       
+           log.info("Solr field enrich service initialised with url='{}' and using request fields='{}' and solrmapping fields='{}'", serverUrl,  solrField2JsonFields,jsonFields2SolrFieldsList);         
         }
  
         
-
         // FIXME DUMP CONFIG OPTIONS
         // ConfigPrinter.print(conf);
         // conf.withOnlyPath("warc").root().render(ConfigRenderOptions.concise()));
@@ -263,7 +264,7 @@ public class WARCIndexerCommand {
 
     
     /**
-     * This method will enrich or overwrite Solr fields with values from an external service just before submitting the document to solr.
+     * This method will enrich   Solr fields with values from an external service just before submitting the document to solr.
      * Can be enabled in the config3.xml by property: warc.enric.enabled=true
      * The service will be called as a POST request with a JSON object with key/values from Solr fields. Defined as list in warc.enrich.solrFieldsInRequest 
      * The JSON response (key-values) will overwrite Solr fields. Define which fields to overwrite in warc.enrich.solrFieldsInRequest.jsonFieldsInResponse  
@@ -272,19 +273,24 @@ public class WARCIndexerCommand {
         final long start = System.nanoTime();
         Instrument.timeRel("WARCIndexer.extract#total","WARCIndexer.extract#external.service", start);  
         if(enrichService!= null) { //Will have been initialized at startup if enabled in config3.xml
-
-            List<String> solrFieldInRequest = conf.getStringList("warc.enrich.solrFieldsInRequest");
+            HashMap<String,String> solrFieldInRequestMapping=  enrichService.getSolrFields2JsonAttributes();
+                                    
             HashMap<String,String> jsonRequestParameters = new HashMap<String,String>();
-            try {
-                //Send parameters in request
-                for (String field : solrFieldInRequest) {       
-                    jsonRequestParameters.put(field, doc.getFieldAsString(field));                    
-                }                                                      
-                HashMap<String, String> solrFieldsValues = enrichService.extractEnrichFields(jsonRequestParameters);
+            try {                                              
+                //Send parameters in request, mapped to JSON attribute name
+                for (String solrField : solrFieldInRequestMapping.keySet()) {       
+                    String attribute=solrFieldInRequestMapping.get(solrField);                       
+                    jsonRequestParameters.put(attribute, doc.getFieldAsString(solrField));                    
+                }               
+                
+                HashMap<String, String> solrFieldsValues  = enrichService.getSolrEnrichmentFields(jsonRequestParameters);                
+
                 //Add or overwrite solrfields
                 for (String field: solrFieldsValues.keySet()) {
+                    log.debug("Enriching with solr field:"+field +" value:"+solrFieldsValues.get(field));
                     doc.setField(field,solrFieldsValues.get(field)); //will overwrite. (setField and not addField)
-                }                
+                } 
+                              
             }
             catch(Exception e) {
                log.error("Error enrich Solr field from service call. Request parameters:"+jsonRequestParameters +" Error:"+e.getMessage());
