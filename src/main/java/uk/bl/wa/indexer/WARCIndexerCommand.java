@@ -147,16 +147,13 @@ public class WARCIndexerCommand {
         String enrichPropertyEnabled="warc.enrich.enabled";
         boolean enrichDefined=conf.hasPath("warc.enrich.enabled");        
         if (enrichDefined && conf.getBoolean(enrichPropertyEnabled)) { //Defined and true                       
-            List<String> jsonFields2SolrFieldsList = conf.getStringList("warc.enrich.jsonFields2SolrFields");
-                        
-            String serverUrl= conf.getString("warc.enrich.server_url");
             List<String> solrField2JsonFields= conf.getStringList("warc.enrich.solrField2JsonFields");
-            
-            enrichService = new ExternalServiceSolrFieldEnricher(serverUrl, jsonFields2SolrFieldsList, solrField2JsonFields);       
-           log.info("Solr field enrich service initialised with url='{}' and using request fields='{}' and solrmapping fields='{}'", serverUrl,  solrField2JsonFields,jsonFields2SolrFieldsList);         
+            List<String> jsonFields2SolrFieldsList = conf.getStringList("warc.enrich.jsonFields2SolrFields");                        
+            String serverUrl= conf.getString("warc.enrich.server_url");                        
+            enrichService = new ExternalServiceSolrFieldEnricher(serverUrl,  solrField2JsonFields,jsonFields2SolrFieldsList);       
+            log.info("Solr field enrich service initialised with url='{}' and using request fields='{}' and solrmapping fields='{}'", serverUrl,  solrField2JsonFields,jsonFields2SolrFieldsList);         
         }
- 
-        
+         
         // FIXME DUMP CONFIG OPTIONS
         // ConfigPrinter.print(conf);
         // conf.withOnlyPath("warc").root().render(ConfigRenderOptions.concise()));
@@ -287,10 +284,12 @@ public class WARCIndexerCommand {
 
                 //Add or overwrite solrfields
                 for (String field: solrFieldsValues.keySet()) {
-                    log.debug("Enriching with solr field:"+field +" value:"+solrFieldsValues.get(field));
-                    doc.setField(field,solrFieldsValues.get(field)); //will overwrite. (setField and not addField)
-                } 
-                              
+                    String solrValue=solrFieldsValues.get(field);
+                    if (solrValue != null) {
+                       log.debug("Enriching with solr field:"+field +" value:"+solrValue);                
+                       doc.setField(field,solrValue); //will overwrite. (setField and not addField)
+                    }
+                }                               
             }
             catch(Exception e) {
                log.error("Error enrich Solr field from service call. Request parameters:"+jsonRequestParameters +" Error:"+e.getMessage());

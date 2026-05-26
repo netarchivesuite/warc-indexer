@@ -38,7 +38,7 @@ public class ExternalServiceSolrFieldEnricher {
     
     public ExternalServiceSolrFieldEnricher(String serverUrl, List<String> solrFields2ToJsonAttributesList, List<String>jsonAttributes2SolrFieldsList) {                                       
         this.serverUrl=serverUrl;
-        this.solrFields2ToJsonAttributes=getFieldMapping(jsonAttributes2SolrFieldsList);
+        this.solrFields2ToJsonAttributes=getFieldMapping(solrFields2ToJsonAttributesList);
         this.jsonAttributes2SolrFields=getFieldMapping(jsonAttributes2SolrFieldsList);        
         httpClient = HttpClientBuilder.create().build();
     }
@@ -62,7 +62,9 @@ public class ExternalServiceSolrFieldEnricher {
      * Map values in service response to solr field names and values
      */    
     public HashMap<String,String> getSolrEnrichmentFields(HashMap<String,String> jsonRequestParameters) throws Exception{          
+    System.out.println("json map input:"+jsonRequestParameters);
         String json=generateJsonObject(jsonRequestParameters);               
+
         String jsonResponse=callService( json);
         HashMap<String, String> jsonFromService = parseJsonMapToJavaMap(jsonResponse);        
         HashMap<String, String> solrFields = extractSolrFieldsFromResponse(jsonFromService);
