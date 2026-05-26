@@ -285,7 +285,7 @@ public class WARCIndexerCommand {
                 //Add or overwrite solrfields
                 for (String field: solrFieldsValues.keySet()) {
                     String solrValue=solrFieldsValues.get(field);
-                    if (solrValue != null) {
+                    if (solrValue != null && !"null".equals(solrValue)) {//json service should not return null value
                        log.debug("Enriching with solr field:"+field +" value:"+solrValue);                
                        doc.setField(field,solrValue); //will overwrite. (setField and not addField)
                     }

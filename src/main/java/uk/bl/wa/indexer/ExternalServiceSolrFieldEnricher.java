@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpResponse;
@@ -40,7 +41,8 @@ public class ExternalServiceSolrFieldEnricher {
         this.serverUrl=serverUrl;
         this.solrFields2ToJsonAttributes=getFieldMapping(solrFields2ToJsonAttributesList);
         this.jsonAttributes2SolrFields=getFieldMapping(jsonAttributes2SolrFieldsList);        
-        httpClient = HttpClientBuilder.create().build();
+        httpClient = HttpClientBuilder.create().setConnectionTimeToLive(10,TimeUnit.SECONDS).build(); //10 second timeout
+    
     }
           
     /*
