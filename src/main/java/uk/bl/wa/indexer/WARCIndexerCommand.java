@@ -268,7 +268,7 @@ public class WARCIndexerCommand {
      */
     private static void enrichFromExternalService(Config conf, ExternalServiceSolrFieldEnricher enrichService, SolrRecord doc) {
         final long start = System.nanoTime();
-        Instrument.timeRel("WARCIndexer.extract#total","WARCIndexer.extract#external.service", start);  
+          
         if(enrichService!= null) { //Will have been initialized at startup if enabled in config3.xml
             HashMap<String,String> solrFieldInRequestMapping=  enrichService.getSolrFields2JsonAttributes();
                                     
@@ -295,6 +295,7 @@ public class WARCIndexerCommand {
                log.error("Error enrich Solr field from service call. Request parameters:"+jsonRequestParameters +" Error:"+e.getMessage());
             }                    
         }
+        Instrument.timeRel("WARCIndexer.extract#total","WARCIndexer.extract#external.service", start);
     }
     
 }

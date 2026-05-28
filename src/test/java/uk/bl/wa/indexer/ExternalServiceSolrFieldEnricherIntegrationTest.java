@@ -4,31 +4,37 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
 public class ExternalServiceSolrFieldEnricherIntegrationTest {
-    
 
     /**
-     *  Convenience main method to manual call and test an external webservice. Easy to run from IDE. 
+     *  Convenience main method to manual call and test an external webservice. Easy to run from IDE.
+     *  The method will do the same steps as the the getSolrEnrichmentFields method in ExternalServiceSolrFieldEnricher.
+     *   
      */
     public static void main(String[] args) throws Exception{    
-        //String url="http://localhost:8000/warc-safe/test_nsfw"; //If no clamAV is installed
-        String url="http://localhost:8000/test_all"; //Must be running
-
-        //Define field mapping from solr fields to service
-        List<String> solrFields2ToJsonAttributes=  new ArrayList<String>(); // This is the fields that will be extracted from the response(if present)
-        solrFields2ToJsonAttributes.add("source_file_path  -> file_path");
-        solrFields2ToJsonAttributes.add("source_file_offset -> offset");
+        Config conf = ConfigFactory.load(); //This will load the reference.conf file.
         
-        //Define field mapping from service to solr fields
-        List<String> jsonAttributes2SolrFields=  new ArrayList<String>();; // This is the fields that will be extracted from the response(if present)        
-        jsonAttributes2SolrFields.add("nsfw_score -> nsfw_probability");
-        jsonAttributes2SolrFields.add("is_nsfw -> is_nsfw"); //Still not implemented in service
-        jsonAttributes2SolrFields.add("is_virus  ->  is_virus"); //Still not implemented in service
-        jsonAttributes2SolrFields.add("av_details  -> virus_description");
-                       
-        ExternalServiceSolrFieldEnricher enrichService= new ExternalServiceSolrFieldEnricher(url,solrFields2ToJsonAttributes,jsonAttributes2SolrFields);
-
-        //Test single warc entry
+        List<String> solrField2JsonFields= conf.getStringList("warc.enrich.solrField2JsonFields");
+        List<String> jsonFields2SolrFieldsList = conf.getStringList("warc.enrich.jsonFields2SolrFields");                        
+        
+        System.out.println("solrField2Json fields mapping:");
+        for (String map:solrField2JsonFields) {
+            System.out.println(map);
+        }
+        
+        System.out.println("jsonField2SolrField mapping:");
+        for (String map: jsonFields2SolrFieldsList) {
+            System.out.println(map);
+        }
+        
+        String serverUrl= conf.getString("warc.enrich.server_url");                        
+        System.out.println("Service url:"+serverUrl);
+        ExternalServiceSolrFieldEnricher enrichService = new ExternalServiceSolrFieldEnricher(serverUrl,  solrField2JsonFields,jsonFields2SolrFieldsList);          
+        
+        //Test single warc entry. Change for test
         HashMap<String,String> jsonRequestParameters = new HashMap<String,String>();
         jsonRequestParameters.put("file_path","/home/teg/solrwayback/warcs_webkid_filtered/DENMARK-EXTRACTED-2000-part-00000003.warc");
         jsonRequestParameters.put("offset","682189");
@@ -41,6 +47,8 @@ public class ExternalServiceSolrFieldEnricherIntegrationTest {
         System.out.println("Json fields in response:"+jsonFromService);
         HashMap<String, String> solrFields = enrichService.extractSolrFieldsFromResponse(jsonFromService);
         System.out.println("solr fields:"+solrFields);
+        
+        
     }
 
 }
