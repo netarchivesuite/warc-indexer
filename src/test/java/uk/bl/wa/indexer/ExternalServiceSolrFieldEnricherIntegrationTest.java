@@ -25,11 +25,12 @@ public class ExternalServiceSolrFieldEnricherIntegrationTest {
             System.out.println(map);
         }
         
+        System.out.println("");
         System.out.println("jsonField2SolrField mapping:");
         for (String map: jsonFields2SolrFieldsList) {
             System.out.println(map);
         }
-        
+        System.out.println("");
         String serverUrl= conf.getString("warc.enrich.server_url");                        
         System.out.println("Service url:"+serverUrl);
         ExternalServiceSolrFieldEnricher enrichService = new ExternalServiceSolrFieldEnricher(serverUrl,  solrField2JsonFields,jsonFields2SolrFieldsList);          
@@ -46,7 +47,7 @@ public class ExternalServiceSolrFieldEnricherIntegrationTest {
         HashMap<String, String> jsonFromService = enrichService.parseJsonMapToJavaMap(jsonResponse);        
         System.out.println("Json fields in response:"+jsonFromService);
         HashMap<String, String> solrFields = enrichService.extractSolrFieldsFromResponse(jsonFromService);
-        System.out.println("solr fields:"+solrFields);
+        System.out.println("Fields send to Solr:"+solrFields);
         
         
     }
