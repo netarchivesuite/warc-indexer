@@ -16,6 +16,7 @@ public class ExternalServiceSolrFieldEnricherIntegrationTest {
      */
     public static void main(String[] args) throws Exception{    
         Config conf = ConfigFactory.load(); //This will load the reference.conf file.
+        //Service call is not enabled, but we are testing each step here, not indexing a warc.
         
         List<String> solrField2JsonFields= conf.getStringList("warc.enrich.solrField2JsonFields");
         List<String> jsonFields2SolrFieldsList = conf.getStringList("warc.enrich.jsonFields2SolrFields");                        
