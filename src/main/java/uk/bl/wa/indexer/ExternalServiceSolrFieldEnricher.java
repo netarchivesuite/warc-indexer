@@ -41,8 +41,7 @@ public class ExternalServiceSolrFieldEnricher {
         this.serverUrl=serverUrl;
         this.solrFields2ToJsonAttributes=getFieldMapping(solrFields2ToJsonAttributesList);
         this.jsonAttributes2SolrFields=getFieldMapping(jsonAttributes2SolrFieldsList);        
-        httpClient = HttpClientBuilder.create().setConnectionTimeToLive(10,TimeUnit.SECONDS).build(); //10 second timeout
-    
+        httpClient = HttpClientBuilder.create().setConnectionTimeToLive(10,TimeUnit.SECONDS).build(); //10 second timeout    
     }
           
     /*
@@ -69,12 +68,9 @@ public class ExternalServiceSolrFieldEnricher {
         String jsonResponse=callService( json);
         HashMap<String, String> jsonFromService = parseJsonMapToJavaMap(jsonResponse);        
         HashMap<String, String> solrFields = extractSolrFieldsFromResponse(jsonFromService);
-        return solrFields;
-
-        
+        return solrFields;        
     }
-    
-    
+        
     protected String callService(String json) throws Exception{       
         log.debug("Calling external service with JSON:"+json);
         HttpPost post = new HttpPost(serverUrl);

@@ -419,8 +419,7 @@ public class WARCIndexer {
             // Payload analysis complete, now performing text analysis:
             // -----------------------------------------------------
 
-            processText(solr, isTextIncluded);
-                    
+            processText(solr, isTextIncluded);                    
         }
         Instrument.timeRel("WARCIndexerCommand.parseWarcFiles#solrdocCreation",
                      "WARCIndexer.extract#total", start);
