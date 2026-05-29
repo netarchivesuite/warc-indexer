@@ -63,8 +63,7 @@ public class ExternalServiceSolrFieldEnricher {
     /*
      * Map values in service response to solr field names and values
      */    
-    public HashMap<String,String> getSolrEnrichmentFields(HashMap<String,String> jsonRequestParameters) throws Exception{          
-    System.out.println("json map input:"+jsonRequestParameters);
+    public HashMap<String,String> getSolrEnrichmentFields(HashMap<String,String> jsonRequestParameters) throws Exception{              
         String json=generateJsonObject(jsonRequestParameters);               
 
         String jsonResponse=callService( json);
@@ -90,7 +89,7 @@ public class ExternalServiceSolrFieldEnricher {
             return null;
         }
         String responseStr = new BasicResponseHandler().handleResponse(response);   
-        log.debug("External service JSON:"+responseStr);
+        //log.debug("External service JSON:"+responseStr);
         return responseStr;       
     }
     
