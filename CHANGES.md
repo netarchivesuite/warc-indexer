@@ -1,9 +1,11 @@
 **NOTE** Generally, we only add terms to the Solr schema, so it should usually be compatible with previous versions (i.e. clients should be able to query across both without modification). However, there are been a small number of fixes which unfortunately required breaking changes you may need to be aware of or work-around. e.g. [hash becomes single-valued](https://github.com/ukwa/webarchive-discovery/issues/95) from 3.0.0 to 3.1.0
 
 Unreleased
- * Added support for calling an external service to enrich solr fields. See the config3.xml 'enrich' property for documentation. <br>
+* Added support for calling an external service to enrich solr fields. See the config3.xml 'enrich' property for documentation. <br>
   Implementation is in the  ExternalServiceSolrFieldEnricher. The service will be called for each record in the WARC file.<br>
   Config has custom mapping from solr to json (request) and from request to solr (response), to make service independant of solr fields.
+* 4 new Solr fields added to support service integration to safe-warc: sfw_probability,is_nsfw,is_virus,virus_description
+* For safe-warc service see: https://github.com/natliblux/warc-safe
 * Warc-indexer config3.xml bumped to version 3.5
 
 3.4.0

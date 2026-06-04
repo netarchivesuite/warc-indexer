@@ -366,8 +366,9 @@ This schema is for Solr 7+ and will not work under Solr 6.
         <field name="arc_harvesttime"      type="string" />
 
      
-        <!-- Additional custom fields from the BnL (National Library of Luxembourg)  -->
-        <!-- Currently under development for the WARC-indexer to call services for custom fields  -->
+        <!-- Additional custom field if safe-warc service is called to enrich solr fields (from version 3.5) -->
+        <!-- Enable service call in config3.xml -->
+        <!-- See: https://github.com/natliblux/warc-safe -->
         <field name="nsfw_probability" type="float" />
         <field name="is_nsfw" type="boolean" />
         <field name="is_virus" type="boolean" />
