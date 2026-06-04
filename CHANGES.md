@@ -2,9 +2,9 @@
 
 Unreleased
  * Added support for calling an external service to enrich solr fields. See the config3.xml 'enrich' property for documentation. <br>
-  To use enable in the config and correct server-url and field sendt to service <br>
   Implementation is in the  ExternalServiceSolrFieldEnricher. The service will be called for each record in the WARC file.<br>
-
+  Config has custom mapping from solr to json (request) and from request to solr (response), to make service independant of solr fields.
+* Warc-indexer config3.xml bumped to version 3.5
 
 3.4.0
 -----
