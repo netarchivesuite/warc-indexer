@@ -13,9 +13,9 @@ public class WarcIndexerCommandInvoker {
         WARCIndexerCommand.main(new String[]{
                 "-c", "conf/config3.conf",
                 "-s", "http://localhost:8983/solr/netarchivebuilder",
-                new File(Thread.currentThread().getContextClassLoader().getResource("IAH-20080430204825-00000-blackbook-truncated.warc.gz").getFile()).getAbsolutePath()
+             //  new File(Thread.currentThread().getContextClassLoader().getResource("IAH-20080430204825-00000-blackbook-truncated.warc.gz").getFile()).getAbsolutePath()
                 //instead  of above you can use full path to file outside project
-                //"home/xxx/warcs/warc1.warc.gz"
+                "/home/teg/solrwayback/warcs_webkid_filtered/DENMARK-EXTRACTED-2000-part-00000012.warc"
         });
     }
 }

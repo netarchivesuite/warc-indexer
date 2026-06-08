@@ -365,6 +365,16 @@ This schema is for Solr 7+ and will not work under Solr 6.
         <field name="arc_harvest"          type="string" />
         <field name="arc_harvesttime"      type="string" />
 
+     
+        <!-- Additional custom field if safe-warc service is called to enrich solr fields (from version 3.5) -->
+        <!-- Enable service call in config3.xml -->
+        <!-- See: https://github.com/natliblux/warc-safe -->
+        <field name="nsfw_probability" type="float" />
+        <field name="is_nsfw" type="boolean" />
+        <field name="is_virus" type="boolean" />
+        <field name="virus_description" type="string" />
+        
+
         <!-- Dynamic fields intended for intstitution-specific fields without changing the schema.
              (yes, the arc_*-fields above should have been dynamic fields instead of hardcoded)
               TODO: Add DocValues-enabled variants (take care not to change existing definitions) -->
