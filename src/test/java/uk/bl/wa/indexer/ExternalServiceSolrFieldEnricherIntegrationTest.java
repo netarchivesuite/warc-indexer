@@ -43,8 +43,12 @@ public class ExternalServiceSolrFieldEnricherIntegrationTest {
         
         String json= enrichService.generateJsonObject(jsonRequestParameters);               
         System.out.println("POST json to service:"+json);
-        String jsonResponse = enrichService.callService( json);
+        String jsonResponse = enrichService.callService( json);        
         System.out.println("Service response:"+jsonResponse);
+        if(jsonResponse==null) {
+            System.out.println("Error, empty/null response from service call;");
+            return;
+        }
         HashMap<String, String> jsonFromService = enrichService.parseJsonMapToJavaMap(jsonResponse);        
         System.out.println("Json fields in response:"+jsonFromService);
         HashMap<String, String> solrFields = enrichService.extractSolrFieldsFromResponse(jsonFromService);

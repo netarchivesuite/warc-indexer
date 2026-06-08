@@ -144,9 +144,9 @@ public class WARCIndexerCommand {
         
         //Set up external service solr field enricher if defined in property-file
         ExternalServiceSolrFieldEnricher enrichService=null;
-        String enrichPropertyEnabled="warc.enrich.enabled";
+        String enrichProperty="warc.enrich.enabled";
         boolean enrichDefined=conf.hasPath("warc.enrich.enabled");        
-        if (enrichDefined && conf.getBoolean(enrichPropertyEnabled)) { //Defined and true                       
+        if (enrichDefined && conf.getBoolean(enrichProperty)) { //Defined and true                       
             List<String> solrField2JsonFields= conf.getStringList("warc.enrich.solrField2JsonFields");
             List<String> jsonFields2SolrFieldsList = conf.getStringList("warc.enrich.jsonFields2SolrFields");                        
             String serverUrl= conf.getString("warc.enrich.server_url");                        

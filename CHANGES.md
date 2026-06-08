@@ -4,8 +4,8 @@ Unreleased
 * Added support for calling an external service to enrich solr fields. See the config3.xml 'enrich' property for documentation. <br>
   Implementation is in the  ExternalServiceSolrFieldEnricher. The service will be called for each record in the WARC file.<br>
   Config has custom mapping from solr to json (request) and from request to solr (response), to make service independant of solr fields.
-* 4 new Solr fields added to support service integration to safe-warc: sfw_probability,is_nsfw,is_virus,virus_description
-* For safe-warc service see: https://github.com/natliblux/warc-safe
+* 4 new Solr fields added to support service integration to warc-safe: nfw_probability,is_nsfw,is_virus,virus_description
+* For warc-safe service see: https://github.com/natliblux/warc-safe
 * Warc-indexer config3.xml bumped to version 3.5
 
 3.4.0
