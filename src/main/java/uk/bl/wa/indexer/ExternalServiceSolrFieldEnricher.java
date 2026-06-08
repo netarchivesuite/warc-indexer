@@ -107,10 +107,10 @@ public class ExternalServiceSolrFieldEnricher {
     @SuppressWarnings("unchecked")
     protected HashMap<String, String> parseJsonMapToJavaMap( String jsonString) {                
         HashMap<String, String> jsonKeyValueMap = new HashMap<String, String>(); 
-        JSONObject json=new JSONObject(jsonString);
         if (jsonString == null || jsonString.isBlank()) { //In case null response from service.
             return jsonKeyValueMap;
-        }        
+        }
+        JSONObject json=new JSONObject(jsonString);        
         Set<String> attributes = (Set<String>) json.keySet();
         for (String key:attributes) {
            Object object = json.get((String) key);                                                              
