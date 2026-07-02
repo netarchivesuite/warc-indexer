@@ -85,39 +85,65 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
         // (prefixing with static test of a final value to allow JIT to fully
         // optimise out the "OR Math.random()" bit)
         if (sampleRate >= 1.0 || Math.random() < sampleRate) {
-            // Increment number of images sampled:
             sampleCount++;
-                        
-            // images are enabled, we still want to extract image/height (fast)
-                //This method takes 0.2ms for a large image. I can be done even faster if needed(but more complicated)).
-                //see https://stackoverflow.com/questions/672916/how-to-get-image-height-and-width-using-java
-              
-              ImageInputStream input=null;
-              ImageReader reader = null;
-              try{
-                input = ImageIO.createImageInputStream(tikainput);
-                reader = ImageIO.getImageReaders(input).next();
-                reader.setInput(input);
-                 // Get dimensions of first image in the stream, without decoding pixel values
-                 int width = reader.getWidth(0);
-                 int height = reader.getHeight(0);
-                
-               // Store basic image data:
-              solr.addField(SolrFields.IMAGE_HEIGHT, ""+height);
-              solr.addField(SolrFields.IMAGE_WIDTH,""+width);
-              solr.addField(SolrFields.IMAGE_SIZE,""+(height*width));                            
-              }
-              catch(Exception e){
-                //it is known that (most) .ico and (all) .svg are not supported by java. Do not log, since it will spam.
-               // log.warn("Unable to extract image height/width/size for url:"+header.getUrl(),e);
-                
-              }
-              finally {
-                 if (reader != null){
-                   reader.dispose();
-                 }
-             }
-              
+
+            int width = 0;
+            int height = 0;
+
+            // Try to load as BufferedImage first — one load covers both dimension extraction and perceptual hashing.
+            java.awt.image.BufferedImage bufferedImage = null;
+            try {
+                bufferedImage = ImageIO.read(tikainput);
+                if (bufferedImage != null) {
+                    width = bufferedImage.getWidth();
+                    height = bufferedImage.getHeight();
+                    solr.addField(SolrFields.IMAGE_HEIGHT, "" + height);
+                    solr.addField(SolrFields.IMAGE_WIDTH, "" + width);
+                    solr.addField(SolrFields.IMAGE_SIZE, "" + (height * width));
+                }
+            } catch (Exception e) {
+                // fall through to ImageReader fallback below
+            }
+
+            // Fallback: if BufferedImage failed (e.g. unsupported format such as
+            // ICO, SVG, or exotic legacy formats), use ImageReader which can extract
+            // dimensions without fully decoding the pixel data.
+            if (bufferedImage == null) {
+                ImageInputStream input = null;
+                ImageReader reader = null;
+                try {
+                    input = ImageIO.createImageInputStream(tikainput);
+                    reader = ImageIO.getImageReaders(input).next();
+                    reader.setInput(input);
+                    width = reader.getWidth(0);
+                    height = reader.getHeight(0);
+                    solr.addField(SolrFields.IMAGE_HEIGHT, "" + height);
+                    solr.addField(SolrFields.IMAGE_WIDTH, "" + width);
+                    solr.addField(SolrFields.IMAGE_SIZE, "" + (height * width));
+                } catch (Exception e) {
+                    // known unsupported formats (ICO, SVG etc.) — suppress
+                } finally {
+                    if (reader != null) {
+                        reader.dispose();
+                    }
+                }
+            }
+
+            // Perceptual hashing — only if BufferedImage loaded successfully
+            // and image meets the minimum dimension threshold.
+            if (bufferedImage != null && Math.min(width, height) >= 150) {
+
+                // PDQ — all 8 dihedral variants in one pipeline pass
+                String[] dihedralHashes = dk.kb.images.hash.PdqHasher.getAllDihedralHashes(bufferedImage);
+                log.info("PDQ original hash: " + dihedralHashes[0]);
+                for (int i = 0; i < dihedralHashes.length; i++) {
+                    log.info("PDQ " + dk.kb.images.hash.PdqHasher.DIHEDRAL_NAMES[i] + ": " + dihedralHashes[i]);
+                }
+
+                // pHash
+                String pHash = dk.kb.images.hash.PhashHasher.getHash(bufferedImage);
+                log.info("pHash: " + pHash);
+            }
         }
     }
 
