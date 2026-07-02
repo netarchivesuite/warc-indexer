@@ -225,6 +225,13 @@
         </dependency>
         <!--Common modules end-->
 
+        <!--p-hash and PDQ-hash for images-->
+        <dependency>
+          <groupId>io.github.netarchivesuite</groupId>
+          <artifactId>image-hashes</artifactId>
+          <version>1.0.0</version>
+        </dependency>
+        
         <dependency>
             <groupId>eu.scape-project.nanite</groupId>
             <artifactId>nanite-core</artifactId>
