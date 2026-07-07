@@ -113,6 +113,10 @@ public interface SolrFields {
     public static final String IMAGE_PDQ_FLIPMINUS1_HASH = "image_pdq_flipMinus1_hash";
     public static final String IMAGE_P_HASH             = "image_p_hash";
     
+       
+ // AI-generated content metadata fields (IPTC 2025.1 and related standards)
+    public static final String CONTENT_AI_METADATA = "content_ai_metadata";
+    public static final String CONTENT_DIGITAL_SOURCE_TYPE = "content_digital_source_type";
     
     public static final String POSTCODE = "postcode";
     public static final String POSTCODE_DISTRICT = "postcode_district";

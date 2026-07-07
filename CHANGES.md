@@ -1,12 +1,60 @@
 **NOTE** Generally, we only add terms to the Solr schema, so it should usually be compatible with previous versions (i.e. clients should be able to query across both without modification). However, there are been a small number of fixes which unfortunately required breaking changes you may need to be aware of or work-around. e.g. [hash becomes single-valued](https://github.com/ukwa/webarchive-discovery/issues/95) from 3.0.0 to 3.1.0
 
-Unreleased
-* Added support for calling an external service to enrich solr fields. See the config3.xml 'enrich' property for documentation. <br>
-  Implementation is in the  ExternalServiceSolrFieldEnricher. The service will be called for each record in the WARC file.<br>
-  Config has custom mapping from solr to json (request) and from request to solr (response), to make service independant of solr fields.
-* 4 new Solr fields added to support service integration to warc-safe: nfw_probability,is_nsfw,is_virus,virus_description
-* For warc-safe service see: https://github.com/natliblux/warc-safe
-* Warc-indexer config3.xml bumped to version 3.5
+
+3.5.0
+-----
+
+### Features
+
+- **Perceptual image hashing (PDQ and pHash):** Images are now indexed with two perceptual hash
+  algorithms for near-duplicate image detection at scale. PDQ hash (256-bit) is Meta's algorithm,
+  well-suited for billion-scale similarity search. pHash (64-bit) is a classic DCT-based perceptual
+  hash. Both are computed from the decoded `BufferedImage` in a single pipeline pass alongside the
+  existing dimension extraction. Images smaller than 150px in either dimension are skipped.
+
+- **New config property `warc.index.extract.content.images.calculateHashes`:** Controls whether
+  perceptual hashes are computed during indexing. **Enabled by default.** Users indexing into an
+  existing Solr schema that does not include the new hash fields must explicitly disable this
+  property to avoid indexing errors: warc.index.extract.content.images.calculateHashes = false
+
+- **New Solr fields for perceptual hashes:** Nine hash fields are added to the schema:
+  image_pdq_hash (original orientation) plus seven dihedral variants
+  (image_pdq_rotate90_hash, image_pdq_rotate180_hash, image_pdq_rotate270_hash,
+  image_pdq_flipX_hash, image_pdq_flipY_hash, image_pdq_flipPlus1_hash,
+  image_pdq_flipMinus1_hash) and image_p_hash. Dynamic field patterns for LSH banding are
+  also added: 8 bands per PDQ dihedral variant (image_pdq_*_band_*) and 2 bands for pHash
+  (image_p_hash_band_*), enabling efficient approximate similarity search without scanning the
+  full index. Band fields are indexed but not stored, as they are used only for lookup and not
+  needed in search results.
+  
+- **New Solr fields for AI-generated content metadata (schema only):** Two fields have been
+  added to the schema in preparation for future extraction support:
+  `content_digital_source_type` (IPTC `DigitalSourceType`, e.g. `trainedAlgorithmicMedia`) and
+  `content_ai_metadata` (AI model name, version, and prompt from IPTC 2025.1 fields).
+  The fields are added now so that users do not need to update their Solr schema
+  a second time when a future Tika release implements Iptc4xmpExt XMP extraction.
+
+- **External service enrichment:** Solr documents can now be enriched by calling an external
+  HTTP service during indexing. The service is called once per WARC record and the response is
+  mapped back into Solr fields. Request and response mappings are fully configurable, keeping
+  the integration independent of specific Solr field names. See the `enrich` property in
+  `config3.xml` for configuration details. Implementation is in `ExternalServiceSolrFieldEnricher`.
+
+- **New config property `warc.enrich.enabled`:** Controls whether external service enrichment
+  is active during indexing. **Disabled by default.** Enable this property and configure the
+  `enrich` section in `config3.xml` to use the external enrichment service.
+
+- **New Solr fields for content safety via warc-safe integration:** Four new fields support
+  integration with the [warc-safe](https://github.com/natliblux/warc-safe) content safety service:
+  `nfw_probability`, `is_nsfw`, `is_virus` and `virus_description`. These are populated via the
+  external service enrichment mechanism described above.
+
+- **Java 11:** Minimum Java version upgraded from 8 to 11.
+
+### Configuration
+
+- `config3.xml` bumped to version 3.5.
+
 
 3.4.0
 -----

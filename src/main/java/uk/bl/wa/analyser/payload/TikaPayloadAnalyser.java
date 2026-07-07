@@ -381,9 +381,7 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
                     solr.setField(SolrFields.LAST_MODIFIED, iso_df.print(edate));
                 }
             }
-            
-            // Also look to record the software identifiers:
-            
+
             // Look for generic xmp:CreatorTool
             solr.addField(SolrFields.GENERATOR, metadata.get("xmp:CreatorTool"));
             // For PDF, support other metadata tags:
@@ -438,7 +436,34 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
                 }
                 }
             }
+          
+            /* 
+             Unfortunately this is not supported by latest Tika. Also latest Tika will require java17.
+            // The two new fields has been added to the solr schema but is inactive.
+            //Extract information about AI generated content
+           // AI-generated content metadata (IPTC 2025.1 standard, XMP fields)
+           // DigitalSourceType gets its own field since it has controlled vocabulary values
+           // (e.g. "trainedAlgorithmicMedia") useful for faceted search and filtering.
+            
+            // These will often be the same. Using single valued solr field important for facetting.
+            // So only add one value.
+            String digitalSourceType = metadata.get("Iptc4xmpExt:DigitalSourceType"); 
+            if (digitalSourceType == null) {
+                digitalSourceType = metadata.get("digitalSourceType");
+            }
+            if (digitalSourceType != null) {
+                solr.addField(SolrFields.CONTENT_DIGITAL_SOURCE_TYPE, digitalSourceType);
+            }
 
+           // All other AI metadata goes into a single multi-value field,
+           // following the same pattern as GENERATOR above.
+              solr.addField(SolrFields.CONTENT_AI_METADATA,metadata.get("Iptc4xmpExt:AISystemUsed"));
+              solr.addField(SolrFields.CONTENT_AI_METADATA,metadata.get("Iptc4xmpExt:AISystemVersionUsed"));
+              solr.addField(SolrFields.CONTENT_AI_METADATA,metadata.get("Iptc4xmpExt:AIPromptInformation"));
+              solr.addField(SolrFields.CONTENT_AI_METADATA,metadata.get("Iptc4xmpExt:AIPromptWriterName"));
+           */
+            
+            //Extract EXIF geo location data for images. (Can also by be in HTML with location tag)
             if (this.extractExifLocation && !solr.containsKey(SolrFields.EXIF_LOCATION)) { // Attempt secondary geo
                 String sLat = metadata.get("geo:lat");
                 String sLong = metadata.get("geo:long");
@@ -460,9 +485,7 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
             }
             //End image exif metadata
             
-             
-            
-            
+                                     
             // Application ID, MS Office only AFAICT, and the VERSION is only doc
             String software = null;
             if( metadata.get( Metadata.SOFTWARE ) != null ) software = metadata.get( Metadata.SOFTWARE );
@@ -473,8 +496,8 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
             if( png_textentry != null && png_textentry.contains("keyword=Software, value=") )
                 software = png_textentry.replace("keyword=Software, value=", "");
             /* Some JPEGs have this:
-    Jpeg Comment: CREATOR: gd-jpeg v1.0 (using IJG JPEG v62), default quality
-    comment: CREATOR: gd-jpeg v1.0 (using IJG JPEG v62), default quality
+            Jpeg Comment: CREATOR: gd-jpeg v1.0 (using IJG JPEG v62), default quality
+            comment: CREATOR: gd-jpeg v1.0 (using IJG JPEG v62), default quality
              */
             if( software != null ) {
                 solr.addField(SolrFields.GENERATOR, software);
