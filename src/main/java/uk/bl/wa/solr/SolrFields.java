@@ -100,6 +100,20 @@ public interface SolrFields {
     public static final String EXIF_VERSION = "exif_version";
     public static final String EXIF_LOCATION = "exif_location";     
     
+    // Perceptual image hashes for near-duplicate image detection.
+    // PDQ hash (256-bit) with all 8 dihedral variants (rotations and mirrors).
+    // pHash (64-bit) classic DCT-based perceptual hash.
+    public static final String IMAGE_PDQ_HASH          = "image_pdq_hash";
+    public static final String IMAGE_PDQ_ROTATE90_HASH  = "image_pdq_rotate90_hash";
+    public static final String IMAGE_PDQ_ROTATE180_HASH = "image_pdq_rotate180_hash";
+    public static final String IMAGE_PDQ_ROTATE270_HASH = "image_pdq_rotate270_hash";
+    public static final String IMAGE_PDQ_FLIPX_HASH     = "image_pdq_flipX_hash";
+    public static final String IMAGE_PDQ_FLIPY_HASH     = "image_pdq_flipY_hash";
+    public static final String IMAGE_PDQ_FLIPPLUS1_HASH  = "image_pdq_flipPlus1_hash";
+    public static final String IMAGE_PDQ_FLIPMINUS1_HASH = "image_pdq_flipMinus1_hash";
+    public static final String IMAGE_P_HASH             = "image_p_hash";
+    
+    
     public static final String POSTCODE = "postcode";
     public static final String POSTCODE_DISTRICT = "postcode_district";
     public static final String LOCATIONS = "locations";
