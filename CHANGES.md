@@ -27,13 +27,6 @@
   full index. Band fields are indexed but not stored, as they are used only for lookup and not
   needed in search results.
   
-- **New Solr fields for AI-generated content metadata (schema only):** Two fields have been
-  added to the schema in preparation for future extraction support:
-  `content_digital_source_type` (IPTC `DigitalSourceType`, e.g. `trainedAlgorithmicMedia`) and
-  `content_ai_metadata` (AI model name, version, and prompt from IPTC 2025.1 fields).
-  The fields are added now so that users do not need to update their Solr schema
-  a second time when a future Tika release implements Iptc4xmpExt XMP extraction.
-
 - **External service enrichment:** Solr documents can now be enriched by calling an external
   HTTP service during indexing. The service is called once per WARC record and the response is
   mapped back into Solr fields. Request and response mappings are fully configurable, keeping
