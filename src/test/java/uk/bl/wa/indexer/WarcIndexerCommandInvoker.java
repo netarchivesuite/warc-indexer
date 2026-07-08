@@ -15,7 +15,7 @@ public class WarcIndexerCommandInvoker {
                 "-s", "http://localhost:8983/solr/netarchivebuilder",
              //  new File(Thread.currentThread().getContextClassLoader().getResource("IAH-20080430204825-00000-blackbook-truncated.warc.gz").getFile()).getAbsolutePath()
                 //instead  of above you can use full path to file outside project
-                "/home/teg/solrwayback/warcs_webkid_filtered/DENMARK-EXTRACTED-2000-part-00000012.warc"
+                "/home/teg/solrwayback/solrwayback_package_5.4.3-SNAPSHOT/temp/ai-metatadata.warc.gz"
         });
     }
 }
