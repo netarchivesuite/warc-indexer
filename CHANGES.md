@@ -6,6 +6,12 @@
 
 ### Features
 
+- **Java 11:** Minimum Java version upgraded from 8 to 11.
+
+### Configuration
+
+- `config3.xml` bumped to version 3.5.
+
 - **Perceptual image hashing (PDQ and pHash):** Images are now indexed with two perceptual hash
   algorithms for near-duplicate image detection at scale. PDQ hash (256-bit) is Meta's algorithm,
   well-suited for billion-scale similarity search. pHash (64-bit) is a classic DCT-based perceptual
@@ -42,11 +48,6 @@
   `nfw_probability`, `is_nsfw`, `is_virus` and `virus_description`. These are populated via the
   external service enrichment mechanism described above.
 
-- **Java 11:** Minimum Java version upgraded from 8 to 11.
-
-### Configuration
-
-- `config3.xml` bumped to version 3.5.
 
 
 3.4.0

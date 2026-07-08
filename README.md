@@ -10,7 +10,7 @@ WARC Indexer
 
 [![DOI](https://zenodo.org/badge/1013711589.svg)](https://doi.org/10.5281/zenodo.18183415)
 
-Latest release 3.4.0: https://github.com/netarchivesuite/warc-indexer/releases/tag/3.4.0
+Latest release 3.5.0: https://github.com/netarchivesuite/warc-indexer/releases/tag/3.5.0
 
 This code runs Apache Tika on WARC and ARC records and extracts suitable metadata for indexing.
 
