@@ -70,10 +70,11 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
     public DroidDetectorAnalyser() {
         // Attempt to set up Droid:
         try {
+            String signatureFile="DROID_SignatureFile_V124.xml";
             //Read from resources
-            try (InputStream in = getClass().getClassLoader().getResourceAsStream("DROID_SignatureFile_V124.xml")) {
+            try (InputStream in = getClass().getClassLoader().getResourceAsStream(signatureFile)) {
                 dd2 = new DroidSignatureVerifierHeuristic(in);
-                log.info("Droid initialized from signature file:");
+                log.info("Droid-light initialized. #signatures loaded="+dd2.getSignatureCount() +" from signature file:"+signatureFile);
             }            
             
             
