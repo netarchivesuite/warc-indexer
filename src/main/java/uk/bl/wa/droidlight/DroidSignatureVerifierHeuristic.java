@@ -142,10 +142,39 @@ public class DroidSignatureVerifierHeuristic {
      * reverse-index, common-format list).
      */
     public DroidSignatureVerifierHeuristic(File signatureFile) throws Exception {
-        System.out.println("Parsing full signature structure (anchors + fragments + endianness): " + signatureFile);
+        this(new FileInputStream(signatureFile), signatureFile.toString());
+    }
+
+    /**
+     * Same as the File constructor, but reads from an already-open InputStream
+     * instead - e.g. a classpath resource stream
+     * (getClass().getClassLoader().getResourceAsStream("DROID_SignatureFile_V124.xml")),
+     * which is what you need once the signature file ships as a Maven resource
+     * packed inside a jar: a plain java.io.File can't represent a jar entry at
+     * all, but the classloader resolves the same resource name correctly
+     * whether it's running from an IDE, from Maven's test phase (src/main/
+     * resources is copied to target/classes - a real directory - before tests
+     * run), or from the packaged jar itself.
+     *
+     * Reads the ENTIRE stream into memory once (a DROID signature file is only
+     * a few MB), since the constructor needs to parse the same underlying XML
+     * three separate times (signatures, formats, extensions - the last of
+     * which isn't captured by DroidSignatureVerifier's own shared parser) and
+     * an InputStream can only be consumed once. Does not close the given
+     * stream - the caller retains ownership, e.g. to close a try-with-resources
+     * classpath resource stream themselves.
+     */
+    public DroidSignatureVerifierHeuristic(InputStream signatureStream) throws Exception {
+        this(signatureStream, "<input stream>");
+    }
+
+    private DroidSignatureVerifierHeuristic(InputStream signatureStream, String sourceDescription) throws Exception {
+        System.out.println("Parsing full signature structure (anchors + fragments + endianness): " + sourceDescription);
         long t0 = System.nanoTime();
-        this.signatures = DroidSignatureVerifier.parseSignatures(signatureFile);
-        this.formats = DroidSignatureVerifier.parseFileFormats(signatureFile);
+
+        byte[] xmlBytes = signatureStream.readAllBytes();
+        this.signatures = DroidSignatureVerifier.parseSignatures(new ByteArrayInputStream(xmlBytes));
+        this.formats = DroidSignatureVerifier.parseFileFormats(new ByteArrayInputStream(xmlBytes));
         DroidSignatureVerifier.precomputeOrdering(signatures); // essential - see its own javadoc
         long t1 = System.nanoTime();
         System.out.printf("  Parsed %,d signatures and %,d file formats in %.1f ms%n",
@@ -169,7 +198,7 @@ public class DroidSignatureVerifierHeuristic {
         // Extensions aren't captured by DroidSignatureVerifier.parseFileFormats() -
         // parsed here independently (small, self-contained pass) rather than
         // modifying that shared method.
-        Map<Integer, List<String>> extensionsByFormatId = parseExtensions(signatureFile);
+        Map<Integer, List<String>> extensionsByFormatId = parseExtensions(new ByteArrayInputStream(xmlBytes));
         for (DroidSignatureVerifier.FileFormatDef fmt : formats) {
             List<String> extensions = extensionsByFormatId.get(fmt.id);
             if (extensions == null) continue;
@@ -213,11 +242,15 @@ public class DroidSignatureVerifierHeuristic {
 
     /** Small, self-contained Extension parser - deliberately independent of
      *  DroidSignatureVerifier.parseFileFormats() (which doesn't capture this
-     *  data) rather than modifying that shared method. */
-    private static Map<Integer, List<String>> parseExtensions(File signatureFile) throws Exception {
+     *  data) rather than modifying that shared method. Takes an already-open
+     *  InputStream (doesn't close it) rather than a File, since the
+     *  InputStream-based constructor needs to parse the same underlying bytes
+     *  three separate times (signatures, formats, extensions) from a single
+     *  buffered-in-memory copy - see the InputStream constructor's javadoc. */
+    private static Map<Integer, List<String>> parseExtensions(InputStream in) throws Exception {
         Map<Integer, List<String>> result = new HashMap<>();
         XMLInputFactory factory = XMLInputFactory.newInstance();
-        try (InputStream in = new BufferedInputStream(new FileInputStream(signatureFile))) {
+        {
             XMLStreamReader r = factory.createXMLStreamReader(in);
             int currentId = -1;
             boolean inFileFormat = false;

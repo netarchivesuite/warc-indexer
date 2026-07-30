@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 
 import org.apache.tika.metadata.Metadata;
@@ -31,11 +32,12 @@ public class DroidDetectorTest {
      */
     @Before
     public void setUp() throws Exception {
-        //TODO read from container
-        String filePath="/home/teg/eclipse-workspace/droid-light/src/main/resources/DROID_SignatureFile_V124.xml";
-        File file=new File(filePath);
-        dd = new DroidSignatureVerifierHeuristic(file);
 
+        //Read from resources
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream("DROID_SignatureFile_V124.xml")) {
+            dd = new DroidSignatureVerifierHeuristic(in);
+        }
+              
     }
 
     /**
