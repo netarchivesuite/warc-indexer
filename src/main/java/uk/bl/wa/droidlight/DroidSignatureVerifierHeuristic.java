@@ -7,7 +7,7 @@ import java.io.*;
 import java.util.*;
 
 /**
- * DroidSignatureVerifierHeurestic - a fundamentally different matching STRATEGY
+ * DroidSignatureVerifierHeuristic - a fundamentally different matching STRATEGY
  * from DroidSignatureVerifier, kept as a completely separate class deliberately
  * (per explicit request) so the two can be A/B compared directly, rather than
  * replacing the existing, already-verified-correct DroidSignatureVerifier.
@@ -297,6 +297,52 @@ public class DroidSignatureVerifierHeuristic {
         int dot = name.lastIndexOf('.');
         if (dot < 0 || dot == name.length() - 1) return null;
         return name.substring(dot + 1).toLowerCase();
+    }
+
+    /**
+     * @return the number of DROID signatures loaded from the signature file
+     *         (~2,258 for a typical current PRONOM release) - the total count
+     *         this class's fast-path/fallback strategy is choosing among, not
+     *         just the ones actually checked for any particular file.
+     */
+    public int getSignatureCount() {
+        return signatures.size();
+    }
+
+    /**
+     * A simple, one-line label per loaded signature, in the same order as
+     * getSignatureCount() reports - e.g. "1487: Hierarchical File System
+     * (fmt/1105)". A signature has no name of its own in the DROID data model
+     * (only the FileFormat(s) that reference it do); most signatures belong to
+     * exactly one format, so this is usually unambiguous. The rare signature
+     * referenced by more than one format lists all of them, comma-separated;
+     * the rarer still signature referenced by none at all (present in the
+     * signature file but not wired to any FileFormat entry) is labeled as such
+     * rather than silently omitted, so the array length always matches
+     * getSignatureCount().
+     *
+     * @return one label per loaded signature - never null, never contains null
+     *         entries
+     */
+    public String[] getSignatureNames() {
+        String[] names = new String[signatures.size()];
+        for (int i = 0; i < signatures.size(); i++) {
+            DroidSignatureVerifier.InternalSignatureDef sig = signatures.get(i);
+            List<DroidSignatureVerifier.FileFormatDef> owners = formatsForSignatureId.get(sig.id);
+            String label;
+            if (owners == null || owners.isEmpty()) {
+                label = "(no format references this signature)";
+            } else {
+                StringBuilder sb = new StringBuilder();
+                for (int j = 0; j < owners.size(); j++) {
+                    if (j > 0) sb.append(", ");
+                    sb.append(owners.get(j).name).append(" (").append(owners.get(j).puid).append(")");
+                }
+                label = sb.toString();
+            }
+            names[i] = sig.id + ": " + label;
+        }
+        return names;
     }
 
     /**
