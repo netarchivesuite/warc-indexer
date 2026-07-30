@@ -231,33 +231,14 @@
           <version>1.1.1</version>
         </dependency>
         
-        <dependency>
-            <groupId>eu.scape-project.nanite</groupId>
-            <artifactId>nanite-core</artifactId>
-            <version>1.5.0-111</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.tika</groupId>
-                    <artifactId>tika-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>junit</groupId>
-                    <artifactId>junit</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.logging.log4j</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.bouncycastle</groupId>
-                    <artifactId>bcprov-jdk15on</artifactId>
-                </exclusion>
-                <exclusion>
-                  <groupId>xml-apis</groupId>
-                  <artifactId>xml-apis</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+      <!-- Source: https://mvnrepository.com/artifact/org.jwat/jwat-common -->
+      <!-- This dependency use to come from Nanite/Droid dependency-->
+      <dependency>
+         <groupId>org.jwat</groupId>
+         <artifactId>jwat-common</artifactId>
+         <version>1.2.1</version>
+         <scope>compile</scope>
+      </dependency>
 
         <dependency>
             <groupId>info.picocli</groupId>
