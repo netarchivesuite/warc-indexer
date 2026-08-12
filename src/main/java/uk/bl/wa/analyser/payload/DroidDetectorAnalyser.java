@@ -3,8 +3,6 @@
  */
 package uk.bl.wa.analyser.payload;
 
-import java.io.File;
-import java.io.IOException;
 
 /*
  * #%L
@@ -34,9 +32,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.io.IOExceptionList;
 import org.apache.commons.io.IOIndexedException;
+import org.apache.solr.common.SolrInputField;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
-import org.apache.tika.mime.MediaType;
+
 import org.archive.io.ArchiveRecordHeader;
 import org.archive.url.UsableURI;
 import org.archive.url.UsableURIFactory;
@@ -44,10 +43,8 @@ import org.archive.url.UsableURIFactory;
 import com.typesafe.config.Config;
 
 import uk.bl.wa.droidlight.DetectionResult;
-import uk.bl.wa.droidlight.DroidSignatureVerifier;
 import uk.bl.wa.droidlight.DroidSignatureVerifierHeuristic;
-import uk.bl.wa.droidlight.TentativeFormatDetector;
-
+import uk.bl.wa.droidlight.FallbackFormatDetector;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.util.Instrument;
@@ -61,27 +58,44 @@ import uk.bl.wa.util.Normalisation;
 public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
     private static Logger log = LoggerFactory.getLogger( DroidDetectorAnalyser.class );
 
-    /** */
-    private DroidSignatureVerifierHeuristic dd2= null;
+    
+    // New implementation of droid that does not get stuck. Uses same signature file.
+    private DroidSignatureVerifierHeuristic droidLight= null;
+    
+    //This is a fallback for droidLight using MimeType.
+    private FallbackFormatDetector fallbackFormatDetector= null;
     private boolean runDroid = true;
 
     private boolean passUriToFormatTools = false;
 
     public DroidDetectorAnalyser() {
         // Attempt to set up Droid:
+        String signatureFile="DROID_SignatureFile_V124.xml";
         try {
-            String signatureFile="DROID_SignatureFile_V124.xml";
+
             //Read from resources
             try (InputStream in = getClass().getClassLoader().getResourceAsStream(signatureFile)) {
-                dd2 = new DroidSignatureVerifierHeuristic(in);
-                log.info("Droid-light initialized. #signatures loaded="+dd2.getSignatureCount() +" from signature file:"+signatureFile);
-            }            
-            
+                droidLight = new DroidSignatureVerifierHeuristic(in);
+                log.info("Droid-light initialized. #signatures loaded="+droidLight.getSignatureCount() +" from signature file:"+signatureFile);                          
+            }                       
             
         } catch (Exception e) {
             log.error("Exception during DroidDetector setup.", e);   
-            dd2=null;
+            droidLight=null;
         }
+        // Attempt to set up fallback
+        try {
+            try (InputStream in = getClass().getClassLoader().getResourceAsStream(signatureFile)) {
+                fallbackFormatDetector = new  FallbackFormatDetector(in);
+                log.info("FallbackFormatDetector initialized. #signatures loaded="+droidLight.getSignatureCount() +" from signature file:"+signatureFile);                          
+            }                       
+            
+        } catch (Exception e) {
+            log.error("Exception during DroidDetector setup.", e);   
+            fallbackFormatDetector=null;
+        }
+        
+        
         Instrument.createSortedStat("WARCPayloadAnalyzers.analyze#droid",
                 Instrument.SORT.avgtime, 5);
     }
@@ -107,43 +121,48 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
      * ArchiveRecordHeader, java.io.InputStream, uk.bl.wa.util.solr.SolrRecord)
      */
     @Override
-    public void analyse(String source, ArchiveRecordHeader header, InputStream tikainput,
-            SolrRecord solr) {
+    public void analyse(String source, ArchiveRecordHeader header, InputStream tikainput, SolrRecord solr) {
         // Also run DROID (restricted range):
-        if (dd2 != null && runDroid == true) {
+        if (droidLight != null && runDroid == true) {
             final long droidStart = System.nanoTime();
             try {
                 // Pass the URL in so DROID can fall back on that:
                 Metadata metadata = new Metadata();
                 if (passUriToFormatTools) {
-                    UsableURI uuri = UsableURIFactory.getInstance(
-                            Normalisation.fixURLErrors(
-                                    Normalisation.sanitiseWARCHeaderValue(header.getUrl())));
+                    UsableURI uuri = UsableURIFactory.getInstance(Normalisation.fixURLErrors(Normalisation.sanitiseWARCHeaderValue(header.getUrl())));
                     // Droid seems unhappy about spaces in filenames, so hack to
                     // avoid:
                     String cleanUrl = uuri.getName().replace(" ", "+");
                     metadata.set(TikaCoreProperties.RESOURCE_NAME_KEY, cleanUrl);
                 }
                 // Run Droid:
-             
-                
+                            
                 long dd2Start=System.currentTimeMillis();
-                DetectionResult[] detectResult = dd2.detect(tikainput,header.getUrl());
+                DetectionResult[] detectResult = droidLight.detect(tikainput,header.getUrl());
                 
-                DetectionResult[] detectResultWithfallback = TentativeFormatDetector.withFallback(detectResult,header.getUrl(),header.getMimetype());
-                System.out.println("mimetype:"+header.getMimetype());
+                //If no result was found above, try use mimetype match as fallback
+                DetectionResult[] detectResultWithfallback = fallbackFormatDetector.withFallback(detectResult,header.getUrl(),header.getMimetype());          
                 System.out.println("url:"+header.getUrl());
                 System.out.println("dd2 time:"+(System.currentTimeMillis()-dd2Start));                
-                String droidLightDetection="application/octet-stream"; // this was the Nanite default is no detection was made.
+                String droidLightDetection=null;
+                String version=null;
                 if (detectResultWithfallback.length >0) {
                     droidLightDetection=detectResultWithfallback[0].getMimeTypeWithVersion();                
+                    version=detectResultWithfallback[0].getVersion();                
+                    
                 }
-                System.out.println("DD2:"+droidLightDetection);
-                
-                solr.addField(SolrFields.CONTENT_TYPE_DROID,  droidLightDetection);
-                Instrument.timeRel("WARCPayloadAnalyzers.analyze#droid",
-                        "WARCPayloadAnalyzers.analyze#droid_type="
-                                +  droidLightDetection,droidStart);
+                                
+                if (droidLightDetection != null) { 
+                   solr.setField(SolrFields.CONTENT_TYPE_DROID,  droidLightDetection);        
+                }
+                else {
+                    System.out.println("NODETECT!"); //TODO REMOVE!
+                    
+                }
+                if (version != null) {                   
+                    solr.setField(SolrFields.CONTENT_VERSION,  version); //notice can be overwritten later in workflow when comparing to tika.
+                }                
+                Instrument.timeRel("WARCPayloadAnalyzers.analyze#droid","WARCPayloadAnalyzers.analyze#droid_type="+  droidLightDetection,droidStart);
             }
             catch(IOIndexedException | IOExceptionList  io) {
                 //This is to prevent long stacktraces on windows when indexing. Delete temp file/directory can fail because of slow windows filelock

@@ -1,4 +1,5 @@
 package uk.bl.wa.droidlight;
+
 /**
  * DetectionResult - one candidate format detection result: PUID ("code"),
  * human-readable format name ("text"), MIME type, and format version - all
@@ -60,11 +61,42 @@ public final class DetectionResult {
      * e.g. for a PNG result whose toString() is
      * "fmt/11  Portable Network Graphics  [image/png; version=1.0]",
      * getMimeTypeWithVersion() returns "image/png; version=1.0" on its own.
+     *
+     * BUG FIX: previously only checked "mimeType == null", not
+     * "mimeType.isEmpty()" - a real case surfaced this: FallbackFormatDetector
+     * can produce a DetectionResult with mimeType set to an EMPTY STRING (not
+     * null - see its own FormatInfo-to-DetectionResult conversion) for a real
+     * PRONOM entry that has a Version but no MimeType attribute at all (e.g.
+     * x-fmt/45 "Microsoft Word Document Template", version="97-2003", no
+     * MimeType declared). The old guard let this through, producing a
+     * malformed "; version=97-2003" with no MIME type prefix at all.
+     *
+     * BUG FIX: a real PRONOM entry can declare MULTIPLE alternate MIME types as
+     * one comma-joined attribute value (e.g. fmt/101 "Extensible Markup
+     * Language" declares MIMEType="application/xml, text/xml" - the same
+     * pattern confirmed earlier for WebP/ICO). The old code appended
+     * "; version=X" once to the whole joined string, producing something like
+     * "application/xml, text/xml; version=1.0" - genuinely ambiguous about
+     * whether the version applies to just the last part or to both, and a
+     * caller naively splitting on the first comma would get "application/xml"
+     * with no version info at all. Fixed by applying the version suffix to
+     * EACH comma-separated part individually - "application/xml; version=1.0,
+     * text/xml; version=1.0" - unambiguous, and the first segment alone is
+     * already a complete, valid "mimetype; version=X" value on its own.
      */
     public String getMimeTypeWithVersion() {
-        if (mimeType == null) return null;
+        if (mimeType == null || mimeType.isEmpty()) return null;
         if (version == null || version.isEmpty()) return mimeType;
-        return mimeType + "; version=" + version;
+        if (mimeType.indexOf(',') < 0) {
+            return mimeType + "; version=" + version;
+        }
+        StringBuilder sb = new StringBuilder();
+        String[] parts = mimeType.split(",");
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(parts[i].trim()).append("; version=").append(version);
+        }
+        return sb.toString();
     }
 
     @Override
