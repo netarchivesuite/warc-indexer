@@ -117,19 +117,17 @@ public class WARCPayloadAnalysers {
 
         // Also get the other content types:
         MediaType mt_tika = MediaType.parse(contentType);
-        if (solr.getField(SolrFields.CONTENT_TYPE_DROID) != null) {
-            MediaType mt_droid = MediaType.parse((String) solr
-                    .getField(SolrFields.CONTENT_TYPE_DROID).getFirstValue());
+        if (solr.getField(SolrFields.CONTENT_TYPE_DROID) != null) {            
+            MediaType mt_droid = MediaType.parse((String) solr.getField(SolrFields.CONTENT_TYPE_DROID).getFirstValue());
             if (mt_tika == null || mt_tika.equals(MediaType.OCTET_STREAM)) {
                 contentType = mt_droid.toString();
-            } else if (mt_droid.getBaseType().equals(mt_tika.getBaseType())
-                    && mt_droid.getParameters().get("version") != null) {
+            } else if (mt_droid.getBaseType().equals(mt_tika.getBaseType()) && mt_droid.getParameters().get("version") != null) {
                 // Union of results:
                 mt_tika = new MediaType(mt_tika, mt_droid.getParameters());
                 contentType = mt_tika.toString();
             }
             if (mt_droid.getParameters().get("version") != null) {
-                solr.addField(SolrFields.CONTENT_VERSION,
+                solr.setField(SolrFields.CONTENT_VERSION,
                         mt_droid.getParameters().get("version"));
             }
         }
