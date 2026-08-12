@@ -126,10 +126,7 @@ public class WARCPayloadAnalysers {
                 mt_tika = new MediaType(mt_tika, mt_droid.getParameters());
                 contentType = mt_tika.toString();
             }
-            if (mt_droid.getParameters().get("version") != null) {
-                solr.setField(SolrFields.CONTENT_VERSION,
-                        mt_droid.getParameters().get("version"));
-            }
+            
         }
 
         // Allow header MIME

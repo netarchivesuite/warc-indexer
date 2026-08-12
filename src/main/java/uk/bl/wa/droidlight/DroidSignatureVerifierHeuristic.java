@@ -6,6 +6,12 @@ import javax.xml.stream.XMLStreamReader;
 import java.io.*;
 import java.util.*;
 
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamReader;
+import java.io.*;
+import java.util.*;
+
 /**
  * DroidSignatureVerifierHeuristic - a fundamentally different matching STRATEGY
  * from DroidSignatureVerifier, kept as a completely separate class deliberately
@@ -346,6 +352,19 @@ public class DroidSignatureVerifierHeuristic {
     }
 
     /**
+     * Same as detect(File, String), but with no hint at all - relies entirely
+     * on the common-format list and, if that finds nothing, the full fallback
+     * scan. Useful when no filename/URL is available to hint from, or simply
+     * for a simpler call site when you don't have one handy.
+     *
+     * @param targetFile the file to identify
+     * @return array of 1+ DetectionResults, index 0 = best guess
+     */
+    public DetectionResult[] detect(File targetFile) throws Exception {
+        return detect(targetFile, null);
+    }
+
+    /**
      * @param targetFile the file to identify
      * @param hint       the last path segment of the file's URL, or a plain
      *                   filename - may be empty or null. Only used if it ends
@@ -358,6 +377,16 @@ public class DroidSignatureVerifierHeuristic {
     public DetectionResult[] detect(File targetFile, String hint) throws Exception {
         DroidSignatureVerifier.FileRegion region = DroidSignatureVerifier.readBoundedRegion(targetFile);
         return detectFromRegion(region, hint);
+    }
+
+    /**
+     * Same as detect(InputStream, String), but with no hint - see
+     * detect(File)'s javadoc for when this is useful.
+     *
+     * @param in the stream to identify; not closed by this method
+     */
+    public DetectionResult[] detect(InputStream in) throws Exception {
+        return detect(in, null);
     }
 
     /**
@@ -380,6 +409,17 @@ public class DroidSignatureVerifierHeuristic {
     }
 
     private DetectionResult[] detectFromRegion(DroidSignatureVerifier.FileRegion region, String hint) throws Exception {
+        // PERFORMANCE: same reasoning as DroidSignatureVerifier's own
+        // detectFromRegion() - an empty region can never match anything. Worth
+        // special-casing here specifically: without this, an empty stream would
+        // waste time on the fast-path candidates AND THEN still fall through to
+        // the full fallback scan (since nothing would match either way) - the
+        // worst case of both tiers for no benefit at all.
+        if (region.length == 0) {
+            if (DroidSignatureVerifier.VERBOSE) System.out.println("  Empty content - skipping signature verification entirely.");
+            return new DetectionResult[0];
+        }
+
         String extension = extractExtension(hint);
 
         LinkedHashSet<DroidSignatureVerifier.InternalSignatureDef> candidates = new LinkedHashSet<>();

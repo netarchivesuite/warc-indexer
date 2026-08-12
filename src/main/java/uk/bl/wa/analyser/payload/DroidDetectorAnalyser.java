@@ -47,6 +47,7 @@ import uk.bl.wa.droidlight.DroidSignatureVerifierHeuristic;
 import uk.bl.wa.droidlight.FallbackFormatDetector;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
+import uk.bl.wa.util.InputStreamUtils;
 import uk.bl.wa.util.Instrument;
 import uk.bl.wa.util.Normalisation;
 
@@ -123,9 +124,13 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
     @Override
     public void analyse(String source, ArchiveRecordHeader header, InputStream tikainput, SolrRecord solr) {
         // Also run DROID (restricted range):
-        if (droidLight != null && runDroid == true) {
+        if (droidLight != null && runDroid == true ) {
             final long droidStart = System.nanoTime();
             try {
+                if( InputStreamUtils.isEmpty(tikainput)){
+                    return; //skip early if empty stream
+                }
+                                
                 // Pass the URL in so DROID can fall back on that:
                 Metadata metadata = new Metadata();
                 if (passUriToFormatTools) {
@@ -156,6 +161,7 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
                    solr.setField(SolrFields.CONTENT_TYPE_DROID,  droidLightDetection);        
                 }
                 else {
+                  System.out.println(header);
                     System.out.println("NODETECT!"); //TODO REMOVE!
                     
                 }
