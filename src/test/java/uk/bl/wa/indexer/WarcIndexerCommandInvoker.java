@@ -21,7 +21,7 @@ public class WarcIndexerCommandInvoker {
                 "-s", "http://localhost:8983/solr/netarchivebuilder",
              //  new File(Thread.currentThread().getContextClassLoader().getResource("IAH-20080430204825-00000-blackbook-truncated.warc.gz").getFile()).getAbsolutePath()
                 //instead  of above you can use full path to file outside project
-                warc2   });
+                warc3   });
     System.out.println("millis:"+(System.currentTimeMillis()-start));
     }
 }

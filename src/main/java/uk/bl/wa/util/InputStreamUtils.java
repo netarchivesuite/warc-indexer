@@ -423,4 +423,24 @@ public class InputStreamUtils {
             }
         }
     }
+    
+    /**
+     * Returns true if the stream is null, or genuinely has no bytes to read.
+     * Uses mark()/reset() to check without consuming any content - the stream
+     * is left exactly where it started. Requires the stream to support
+     * mark/reset (TikaInputStream does, with an effectively unlimited read
+     * limit); if it doesn't, this can't safely peek without permanently
+     * consuming a byte, so it conservatively returns false ("assume not
+     * empty, let detect() find out normally") rather than risk silently
+     * eating the first byte of real content.
+     */
+    public static boolean isEmpty(InputStream in) throws IOException {
+        if (in == null) return true;
+        if (!in.markSupported()) return false;
+        in.mark(1);
+        int firstByte = in.read();
+        in.reset();
+        return firstByte == -1;
+    }
+    
 }

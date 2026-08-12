@@ -7,6 +7,13 @@ import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
 
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamReader;
+import java.io.*;
+import java.nio.file.Files;
+import java.util.*;
+
 /**
  * DroidSignatureVerifier - a readability-first implementation of DROID's binary
  * signature matching, correcting several gaps and one genuine misunderstanding found
@@ -1687,6 +1694,20 @@ public class DroidSignatureVerifier {
      * lives here exactly once.
      */
     private DetectionResult[] detectFromRegion(FileRegion region) throws Exception {
+        // PERFORMANCE: an empty region can never match any DROID signature -
+        // every signature's anchor needs at least some bytes to compare against
+        // - so skip the whole 2,258-signature loop entirely for one. This is a
+        // real, common case in practice: HTTP redirect (e.g. 302) WARC records
+        // legitimately have no payload at all, and calling detect() on an
+        // empty stream was previously paying the full iteration cost (a quick,
+        // but real and entirely avoidable, per-signature overhead) just to
+        // arrive at the same "no signatures matched" conclusion this reaches
+        // immediately instead.
+        if (region.length == 0) {
+            if (VERBOSE) System.out.println("  Empty content - skipping signature verification entirely.");
+            return new DetectionResult[0];
+        }
+
         long t2 = System.nanoTime();
         List<Integer> matchedSignatureIds = new ArrayList<>();
         for (InternalSignatureDef sig : signatures) {
