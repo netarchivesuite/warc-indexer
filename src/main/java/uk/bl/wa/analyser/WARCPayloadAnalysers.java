@@ -154,7 +154,6 @@ public class WARCPayloadAnalysers {
             solr.setField(SolrFields.SOLR_CONTENT_TYPE,
                     contentType.replaceAll(";.*$", ""));
 
-            // Also add a more general, simplified type, as appropriate:
             if (contentType.matches("^image/.*$")) {
                 solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "image");
                 solr.setField(SolrFields.SOLR_TYPE, "Image");
@@ -174,13 +173,19 @@ public class WARCPayloadAnalysers {
             } else if (contentType.matches("^application/pdf.*$")) {
                 solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "pdf");
                 solr.setField(SolrFields.SOLR_TYPE, "Document");
-            } else if (contentType.matches("^.*word$")) {
+            } else if (contentType.matches("^.*word$")
+                    || contentType.matches("^.*wordprocessingml.*$")          // NEW: .docx, .dotx (OOXML)
+                    || contentType.matches("^application/vnd.ms-word\\..*macroenabled.*$")) { // NEW: .docm
                 solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "word");
                 solr.setField(SolrFields.SOLR_TYPE, "Document");
-            } else if (contentType.matches("^.*excel$")) {
+            } else if (contentType.matches("^.*excel$")
+                    || contentType.matches("^.*spreadsheetml.*$")             // NEW: .xlsx, .xltx (OOXML)
+                    || contentType.matches("^application/vnd.ms-excel\\..*macroenabled.*$")) { // NEW: .xlsm
                 solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "excel");
                 solr.setField(SolrFields.SOLR_TYPE, "Data");
-            } else if (contentType.matches("^.*powerpoint$")) {
+            } else if (contentType.matches("^.*powerpoint$")
+                    || contentType.matches("^.*presentationml.*$")            // NEW: .pptx, .potx, .ppsx (OOXML)
+                    || contentType.matches("^application/vnd.ms-powerpoint\\..*macroenabled.*$")) { // NEW: .pptm
                 solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE,
                         "powerpoint");
                 solr.setField(SolrFields.SOLR_TYPE, "Presentation");
