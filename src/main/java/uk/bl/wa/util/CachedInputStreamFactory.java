@@ -106,12 +106,8 @@ public class CachedInputStreamFactory {
         File cacheFile = File.createTempFile("warc-indexer", ".cache");
         cacheFile.deleteOnExit();
         OutputStream cache = new FileOutputStream(cacheFile);
-
         long toCopy = onlyReadLength ? Math.min(length, onDiskThreshold) : onDiskThreshold;
         long copied = IOUtils.copyLarge(in, cache, 0, toCopy);
-        if (closeAfterRead) {
-            in.close();
-        }
         cache.close();
 
         if (onlyReadLength && length > onDiskThreshold) {
@@ -123,6 +119,10 @@ public class CachedInputStreamFactory {
         } else if (!onlyReadLength && copied == onDiskThreshold) { // Don't know if EOF has been reached
             // Read on ad infinitum
             IOUtils.skip(in, Long.MAX_VALUE);
+        }
+
+        if (closeAfterRead) {
+            in.close();
         }
 
         return new RandomAccessFileInputStream(new RandomAccessFile(cacheFile, "r")) {

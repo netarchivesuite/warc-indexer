@@ -1,4 +1,5 @@
 package uk.bl.wa.droidlight;
+
 /**
  * FormatInfo - one candidate file format identified by FallbackFormatDetector:
  * PUID, human-readable name, MIME type, and version - straight from the
@@ -41,6 +42,33 @@ public final class FormatInfo {
 
     public String getVersion() {
         return version;
+    }
+
+    /**
+     * A single, always-parseable MIME type - same purpose and behavior as
+     * DetectionResult.getPrimaryMimeType() (see that class for the full
+     * rationale and the shared override table it uses). Returns mimeType
+     * unchanged if it has no comma, the curated override if one exists,
+     * otherwise the first declared value as a default. Returns null if
+     * there's no mimeType at all.
+     */
+    public String getPrimaryMimeType() {
+        if (mimeType == null || mimeType.isEmpty()) return null;
+        if (mimeType.indexOf(',') < 0) return mimeType;
+        String override = DetectionResult.PRIMARY_MIME_TYPE_OVERRIDES.get(mimeType);
+        if (override != null) return override;
+        return mimeType.split(",")[0].trim();
+    }
+
+    /**
+     * getPrimaryMimeType() combined with version - same purpose and behavior
+     * as DetectionResult.getPrimaryMimeTypeWithVersion() (see that class).
+     */
+    public String getPrimaryMimeTypeWithVersion() {
+        String primary = getPrimaryMimeType();
+        if (primary == null) return null;
+        if (version == null || version.isEmpty()) return primary;
+        return primary + "; version=" + version;
     }
 
     /**

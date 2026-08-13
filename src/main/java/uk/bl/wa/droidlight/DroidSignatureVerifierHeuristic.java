@@ -6,12 +6,6 @@ import javax.xml.stream.XMLStreamReader;
 import java.io.*;
 import java.util.*;
 
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamReader;
-import java.io.*;
-import java.util.*;
-
 /**
  * DroidSignatureVerifierHeuristic - a fundamentally different matching STRATEGY
  * from DroidSignatureVerifier, kept as a completely separate class deliberately
@@ -141,6 +135,35 @@ public class DroidSignatureVerifierHeuristic {
     private final List<DroidSignatureVerifier.InternalSignatureDef> commonSignatures = new ArrayList<>();
 
     /**
+     * Search distance used ONLY by rescanLongAnchorSignatures() below - large
+     * enough to comfortably cover every known real case requiring more than
+     * the fast default (DroidSignatureVerifier.MAX_ANCHOR_SEARCH_DISTANCE,
+     * 3000): certain JPEGs needing up to ~65,536 to reach an EOF trailer past
+     * a large embedded thumbnail (confirmed on a real production file), and
+     * DMG disk images needing up to ~136,004. Confirmed working in production
+     * for the JPEG case specifically. Deliberately NOT used for the normal
+     * fast scan - only for the small, targeted signature set below, where
+     * the extra search cost is bounded and rare rather than paid on every file.
+     */
+    public static long LONG_ANCHOR_SEARCH_DISTANCE = 150_000;
+
+    /**
+     * Signatures that the fast default scan (DroidSignatureVerifier.
+     * MAX_ANCHOR_SEARCH_DISTANCE, 3000) can NEVER find, even for genuinely
+     * matching content - because at least one ByteSequence's fixed (first)
+     * SubSequence declares a SubSeqMaxOffset larger than 3000, or leaves it
+     * unbounded entirely, meaning the real anchor could legitimately sit
+     * further away than the fast scan's search window ever reaches.
+     *
+     * Precomputed ONCE at construction time (see the constructor), not per
+     * file - this is what makes rescanLongAnchorSignatures() cheap: it only
+     * ever needs to check this small, targeted list, not all 2,258 signatures
+     * again, since everything else was already conclusively ruled out (or
+     * in) by the fast scan at distance 3000.
+     */
+    private final List<DroidSignatureVerifier.InternalSignatureDef> longAnchorSignatures = new ArrayList<>();
+
+    /**
      * Parses the given DROID signature file - reusing DroidSignatureVerifier's
      * own parser directly for the core signature/format data (nothing about
      * DroidSignatureVerifier itself is modified) - then builds the extra
@@ -185,6 +208,26 @@ public class DroidSignatureVerifierHeuristic {
         long t1 = System.nanoTime();
         System.out.printf("  Parsed %,d signatures and %,d file formats in %.1f ms%n",
                 signatures.size(), formats.size(), (t1 - t0) / 1e6);
+
+        // Signatures the fast default scan (MAX_ANCHOR_SEARCH_DISTANCE, 3000)
+        // can NEVER find even for genuinely matching content - because at
+        // least one ByteSequence's fixed (first) SubSequence declares a
+        // SubSeqMaxOffset larger than 3000, or leaves it unbounded entirely -
+        // see longAnchorSignatures's own javadoc for the full rationale.
+        for (DroidSignatureVerifier.InternalSignatureDef sig : signatures) {
+            boolean qualifies = false;
+            for (DroidSignatureVerifier.ByteSequenceDef bs : sig.byteSequences) {
+                if (bs.orderedSubSequences == null || bs.orderedSubSequences.isEmpty()) continue;
+                DroidSignatureVerifier.SubSequenceDef fixedSub = bs.orderedSubSequences.get(0);
+                if (fixedSub.maxSeqOffset < 0 || fixedSub.maxSeqOffset > DroidSignatureVerifier.MAX_ANCHOR_SEARCH_DISTANCE) {
+                    qualifies = true;
+                    break;
+                }
+            }
+            if (qualifies) longAnchorSignatures.add(sig);
+        }
+        System.out.printf("  %,d signature(s) need more than the fast default distance (%,d) - see getLongAnchorSignatureNames()%n",
+                longAnchorSignatures.size(), DroidSignatureVerifier.MAX_ANCHOR_SEARCH_DISTANCE);
 
         for (DroidSignatureVerifier.InternalSignatureDef sig : signatures) {
             signatureById.put(sig.id, sig);
@@ -349,6 +392,104 @@ public class DroidSignatureVerifierHeuristic {
             names[i] = sig.id + ": " + label;
         }
         return names;
+    }
+
+    /**
+     * @return the number of signatures that need more than the fast default
+     *         search distance to ever be found - see longAnchorSignatures's
+     *         javadoc. This is the exact set rescanLongAnchorSignatures()
+     *         checks, and only that set - not all loaded signatures.
+     */
+    public int getLongAnchorSignatureCount() {
+        return longAnchorSignatures.size();
+    }
+
+    /**
+     * A simple, one-line label per long-anchor signature (see
+     * longAnchorSignatures's javadoc), in the same "id: format name (PUID)"
+     * format as getSignatureNames() - scoped to just this small subset rather
+     * than all loaded signatures.
+     *
+     * @return one label per long-anchor signature - never null, never
+     *         contains null entries
+     */
+    public String[] getLongAnchorSignatureNames() {
+        String[] names = new String[longAnchorSignatures.size()];
+        for (int i = 0; i < longAnchorSignatures.size(); i++) {
+            DroidSignatureVerifier.InternalSignatureDef sig = longAnchorSignatures.get(i);
+            List<DroidSignatureVerifier.FileFormatDef> owners = formatsForSignatureId.get(sig.id);
+            String label;
+            if (owners == null || owners.isEmpty()) {
+                label = "(no format references this signature)";
+            } else {
+                StringBuilder sb = new StringBuilder();
+                for (int j = 0; j < owners.size(); j++) {
+                    if (j > 0) sb.append(", ");
+                    sb.append(owners.get(j).name).append(" (").append(owners.get(j).puid).append(")");
+                }
+                label = sb.toString();
+            }
+            names[i] = sig.id + ": " + label;
+        }
+        return names;
+    }
+
+    /**
+     * Re-scans ONLY the small set of signatures the fast default scan can
+     * never find (see longAnchorSignatures's javadoc), using a much larger
+     * search distance (LONG_ANCHOR_SEARCH_DISTANCE, 150,000 by default).
+     * Intended to be called AFTER a normal detect() call returns empty, as a
+     * deliberate second, rare fallback tier - not as a replacement for the
+     * fast scan, and not run automatically by detect() itself.
+     *
+     * THREAD SAFETY: unlike naively mutating a shared
+     * MAX_ANCHOR_SEARCH_DISTANCE field around a normal detect() call (unsafe
+     * under concurrent use - e.g. a 48-thread WARC-processing pipeline), the
+     * larger distance is passed as an explicit parameter all the way down to
+     * the actual matching loop (see DroidSignatureVerifier.matchSignature's
+     * parameterized overload). Nothing shared or mutated - safe to call
+     * concurrently from many threads with zero synchronization and zero
+     * contention with the normal fast path, which is completely unaffected
+     * either way.
+     *
+     * @param targetFile the file to identify
+     * @return array of 0+ DetectionResults from the long-anchor signature set
+     *         only - empty if none of them match either
+     */
+    public DetectionResult[] rescanLongAnchorSignatures(File targetFile) throws Exception {
+        DroidSignatureVerifier.FileRegion region = DroidSignatureVerifier.readBoundedRegion(targetFile);
+        return rescanLongAnchorSignaturesFromRegion(region);
+    }
+
+    /**
+     * Same as rescanLongAnchorSignatures(File), but reads from an InputStream
+     * instead - identical mark/reset contract to detect(InputStream).
+     *
+     * @param in the stream to identify; not closed by this method
+     */
+    public DetectionResult[] rescanLongAnchorSignatures(InputStream in) throws Exception {
+        if (in.markSupported()) {
+            try {
+                in.reset();
+            } catch (IOException e) {
+                System.out.println("  (reset() failed on the supplied stream, reading from current position: " + e + ")");
+            }
+        }
+        DroidSignatureVerifier.FileRegion region = DroidSignatureVerifier.readBoundedRegion(in);
+        return rescanLongAnchorSignaturesFromRegion(region);
+    }
+
+    private DetectionResult[] rescanLongAnchorSignaturesFromRegion(DroidSignatureVerifier.FileRegion region) throws Exception {
+        if (region.length == 0) return new DetectionResult[0]; // same reasoning as detectFromRegion's own empty-content check
+
+        List<Integer> matchedSigIds = new ArrayList<>();
+        for (DroidSignatureVerifier.InternalSignatureDef sig : longAnchorSignatures) {
+            if (DroidSignatureVerifier.matchSignature(region, sig, LONG_ANCHOR_SEARCH_DISTANCE)) {
+                matchedSigIds.add(sig.id);
+            }
+        }
+        if (matchedSigIds.isEmpty()) return new DetectionResult[0];
+        return resolveAndBuildResults(matchedSigIds);
     }
 
     /**

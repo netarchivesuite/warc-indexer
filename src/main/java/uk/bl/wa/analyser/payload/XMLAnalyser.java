@@ -12,6 +12,7 @@ import org.archive.io.ArchiveRecordHeader;
 
 import com.typesafe.config.Config;
 
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.parsers.XMLRootNamespaceParser;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
@@ -52,13 +53,13 @@ public class XMLAnalyser extends AbstractPayloadAnalyser {
      * ArchiveRecordHeader, java.io.InputStream, uk.bl.wa.util.solr.SolrRecord)
      */
     @Override
-    public void analyse(String source, ArchiveRecordHeader header, InputStream tikainput,
+    public void analyse(String source, ArchiveRecordHeader header,HTTPHeader httpHeader, InputStream tikainput,
             SolrRecord solr) {
         final long start = System.nanoTime();
         Metadata metadata = new Metadata();
         // Also attempt to grab the XML Root NS:
         if( this.extractXMLRootNamespace ) {
-            ParseRunner parser = new ParseRunner( xrns, tikainput, metadata, solr );
+            ParseRunner parser = new ParseRunner( xrns, tikainput, metadata,httpHeader, solr );
             try {
                 TimeLimiter.run(parser, 30000L, false);
             } catch( Exception e ) {

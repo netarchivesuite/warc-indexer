@@ -14,6 +14,7 @@ import org.archive.io.ArchiveRecordHeader;
 import com.google.common.base.Splitter;
 import com.typesafe.config.Config;
 
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.util.Instrument;
@@ -55,8 +56,7 @@ public class FirstBytesAnalyser extends AbstractPayloadAnalyser {
      * ArchiveRecordHeader, java.io.InputStream, uk.bl.wa.util.solr.SolrRecord)
      */
     @Override
-    public void analyse(String source, ArchiveRecordHeader header, InputStream tikainput,
-            SolrRecord solr) {
+    public void analyse(String source, ArchiveRecordHeader header, HTTPHeader httpHeader,InputStream tikainput, SolrRecord solr) {
         final long firstBytesStart = System.nanoTime();
         // Pull out the first few bytes, to hunt for new format by magic:
         try {

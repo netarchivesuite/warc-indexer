@@ -45,6 +45,7 @@ import com.typesafe.config.Config;
 import uk.bl.wa.droidlight.DetectionResult;
 import uk.bl.wa.droidlight.DroidSignatureVerifierHeuristic;
 import uk.bl.wa.droidlight.FallbackFormatDetector;
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.util.InputStreamUtils;
@@ -122,7 +123,7 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
      * ArchiveRecordHeader, java.io.InputStream, uk.bl.wa.util.solr.SolrRecord)
      */
     @Override
-    public void analyse(String source, ArchiveRecordHeader header, InputStream tikainput, SolrRecord solr) {
+    public void analyse(String source, ArchiveRecordHeader header,HTTPHeader httpHeader,InputStream tikainput, SolrRecord solr) {
         // Also run DROID (restricted range):
         if (droidLight != null && runDroid == true ) {
             final long droidStart = System.nanoTime();
@@ -142,20 +143,34 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
                 }
                 // Run Droid:
                             
+                String httpHeaderMimeType= httpHeader.getHeader("Content-Type", "");
+                
                 long dd2Start=System.currentTimeMillis();
                 DetectionResult[] detectResult = droidLight.detect(tikainput,header.getUrl());
                 
-                //If no result was found above, try use mimetype match as fallback
-                DetectionResult[] detectResultWithfallback = fallbackFormatDetector.withFallback(detectResult,header.getUrl(),header.getMimetype());          
+                //If no result was found above, try use mimetype match as fallback. Will no scan if already has result
+                DetectionResult[] detectResultWithfallback = fallbackFormatDetector.withFallback(detectResult,header.getUrl(),httpHeaderMimeType);          
                 System.out.println("url:"+header.getUrl());
+                System.out.println("minetype http header:"+httpHeaderMimeType);                
                 System.out.println("dd2 time:"+(System.currentTimeMillis()-dd2Start));                
                 String droidLightDetection=null;
                 String version=null;
-                if (detectResultWithfallback.length >0) {
-                    droidLightDetection=detectResultWithfallback[0].getMimeTypeWithVersion();                
-                    version=detectResultWithfallback[0].getVersion();                
-                    
+                if (detectResultWithfallback.length >0) {                
+                    droidLightDetection=detectResultWithfallback[0].getPrimaryMimeTypeWithVersion();//Only want one                
+                    version=detectResultWithfallback[0].getVersion();
+                    System.out.println("with fallback detected:"+droidLightDetection);
                 }
+                else {
+                    /// Deep scan heavy signatures. JPEG is only common case that was not found above.
+                    DetectionResult[] detectResultDeep =  droidLight.rescanLongAnchorSignatures(tikainput);
+                    System.out.println("DEEP SCAN:"+droidLightDetection);
+                    if (detectResultDeep.length >0) {
+                        droidLightDetection=detectResultDeep[0].getPrimaryMimeTypeWithVersion();//only want one                
+                        detectResultDeep[0].getVersion();
+                        System.out.println("DEEP SCAN2:"+droidLightDetection);
+                    }
+                }
+                                
                                 
                 if (droidLightDetection != null) { 
                    solr.setField(SolrFields.CONTENT_TYPE_DROID,  droidLightDetection);        

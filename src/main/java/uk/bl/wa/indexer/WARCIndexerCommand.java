@@ -216,9 +216,9 @@ public class WARCIndexerCommand {
                         + rec.getHeader().getOffset());
                 try {
                     doc = windex.extract(inFile.getName(), rec, isTextRequired);
-                } catch (Exception e) {
-                    log.warn("Exception on record " + url + " from " + inFile.getName(), e);
-                    doc.addParseException(e);
+                } catch (Exception e) {                   
+                   log.warn("Exception on record " + url + " from " + inFile.getName() +" for offset:"+rec.getHeader().getOffset(), e);                                     
+                   doc.addParseException(e);
                     continue;
                 } catch (OutOfMemoryError e) {
                     log.warn("OutOfMemoryError on record " + url + " from " + inFile.getName(), e);

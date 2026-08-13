@@ -19,6 +19,7 @@ import com.typesafe.config.Config;
 
 import dk.kb.images.hash.PdqHasher;
 import dk.kb.images.hash.PhashHasher;
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 
@@ -79,9 +80,7 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
     }
 
     @Override
-    public void analyse(String source, ArchiveRecordHeader header,
-            InputStream tikainput,
-            SolrRecord solr) {
+    public void analyse(String source, ArchiveRecordHeader header, HTTPHeader httpHeader,InputStream tikainput, SolrRecord solr) {
         // Set up metadata object to pass to parsers:
         Metadata metadata = new Metadata();
         // Skip large images:
