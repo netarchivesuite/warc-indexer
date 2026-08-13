@@ -3,7 +3,6 @@
  */
 package uk.bl.wa.analyser;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
@@ -19,7 +18,6 @@ import uk.bl.wa.analyser.payload.TikaPayloadAnalyser;
 import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
-import uk.bl.wa.util.InputStreamUtils;
 import uk.bl.wa.util.Instrument;
 import uk.bl.wa.util.Normalisation;
 
