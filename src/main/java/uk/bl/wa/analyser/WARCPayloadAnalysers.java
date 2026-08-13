@@ -51,14 +51,13 @@ public class WARCPayloadAnalysers {
     }
 
     /**
-     *  @param source
+     * @param source
      * @param header
      * @param httpHeader
      * @param tikainput
      * @param solr
      */
-    public void analyse(String source, ArchiveRecordHeader header, HTTPHeader httpHeader,
-                        InputStream tikainput, SolrRecord solr, long content_length) {
+    public void analyse(String source, ArchiveRecordHeader header, HTTPHeader httpHeader, InputStream tikainput, SolrRecord solr, long content_length) {
         // Note: The repeated use of InputStreamUtils.maybeDecompress might cause multiple uncompressions.
         // This is acceptable as it saves memory/temporary disk space and because the compression schemes
         // used are GZip & Brotly, both of which are fairly light weight to decompress.
@@ -69,9 +68,10 @@ public class WARCPayloadAnalysers {
 
         // Always run Tika first:
         // (this ensures the SOLR_CONTENT_TYPE is set)
-        try {
-            tika.analyse(source, header, tikainput, solr);
-        } catch (Exception e) {
+        try {            
+            tika.analyse(source, header, httpHeader, tikainput, solr);
+            }
+        catch (Exception e) {
             log.error("IOException analyzing content of '" + source + "' with tika", e);
         }
 
@@ -83,7 +83,7 @@ public class WARCPayloadAnalysers {
                     // Reset input stream before running each parser:
                     tikainput.reset();
                     // Run the parser:
-                    provider.analyse(source, header, tikainput, solr);
+                    provider.analyse(source, header,httpHeader, tikainput, solr);
                 } catch (Exception i) {
                     log.error(i + ": " + i.getMessage() + ";x; " + url + "@"
                             + header.getOffset(), i);
@@ -121,7 +121,7 @@ public class WARCPayloadAnalysers {
             MediaType mt_droid = MediaType.parse((String) solr.getField(SolrFields.CONTENT_TYPE_DROID).getFirstValue());
             if (mt_tika == null || mt_tika.equals(MediaType.OCTET_STREAM)) {
                 contentType = mt_droid.toString();
-            } else if (mt_droid.getBaseType().equals(mt_tika.getBaseType()) && mt_droid.getParameters().get("version") != null) {
+            } else if (mt_droid != null && mt_tika != null && mt_droid.getBaseType().equals(mt_tika.getBaseType()) && mt_droid.getParameters().get("version") != null) {
                 // Union of results:
                 mt_tika = new MediaType(mt_tika, mt_droid.getParameters());
                 contentType = mt_tika.toString();

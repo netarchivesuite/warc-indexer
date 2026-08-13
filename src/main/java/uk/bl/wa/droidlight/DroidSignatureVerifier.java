@@ -7,13 +7,6 @@ import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
 
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamReader;
-import java.io.*;
-import java.nio.file.Files;
-import java.util.*;
-
 /**
  * DroidSignatureVerifier - a readability-first implementation of DROID's binary
  * signature matching, correcting several gaps and one genuine misunderstanding found
@@ -922,7 +915,37 @@ public class DroidSignatureVerifier {
      * @return the new cursor (end of this SubSequence's full match, for chaining to
      *         the next SubSequence, if any), or -1 if no valid candidate exists.
      */
+    /** Convenience overload using the shared static MAX_ANCHOR_SEARCH_DISTANCE -
+     *  see the parameterized overload below for why an explicit-parameter
+     *  version also exists (thread-safe targeted re-scanning at a different
+     *  distance, without touching shared mutable state at all). */
     static long matchFixedSubSequence(FileRegion region, SubSequenceDef sub, long referencePosition, boolean searchBackward) {
+        return matchFixedSubSequence(region, sub, referencePosition, searchBackward, MAX_ANCHOR_SEARCH_DISTANCE);
+    }
+
+    /**
+     * Same as the 4-argument overload above, but takes the search distance as
+     * an explicit parameter instead of reading the shared static
+     * MAX_ANCHOR_SEARCH_DISTANCE field directly.
+     *
+     * WHY THIS EXISTS: a production case needed re-scanning specific
+     * signatures at a LARGER distance than the fast default (3000) when the
+     * fast scan finds nothing - e.g. certain JPEGs need up to ~65536 to reach
+     * their EOF trailer (see MAX_ANCHOR_SEARCH_DISTANCE's own javadoc). The
+     * naive way to do this would be to temporarily mutate the static field,
+     * scan, then restore it - but MAX_ANCHOR_SEARCH_DISTANCE is shared across
+     * every thread, and a production pipeline processing WARC records with
+     * many concurrent threads (48, in the motivating case) can't safely
+     * mutate shared state like that without synchronizing the ENTIRE detect()
+     * call for every thread, all the time, just to guard a rare special case -
+     * a real, avoidable bottleneck at that scale. Threading the distance
+     * through as a parameter instead means each thread's own call stack holds
+     * its own value - nothing shared, nothing to synchronize, and the normal
+     * fast path (using the 4-argument overload, unaffected) stays fully
+     * parallel with zero contention.
+     */
+    static long matchFixedSubSequence(FileRegion region, SubSequenceDef sub, long referencePosition, boolean searchBackward,
+                                       long maxAnchorSearchDistance) {
         if (sub.anchor == null) return -1;
         int anchorLen = patternLength(sub.anchor);
         long maxOffset = (sub.maxSeqOffset >= 0) ? sub.maxSeqOffset : Long.MAX_VALUE / 2;
@@ -933,7 +956,7 @@ public class DroidSignatureVerifier {
             // point and moving further back (away from EOF) until the RIGHT fragment
             // chain's end satisfies [referencePosition-maxOffset, referencePosition-minOffset].
             long candidate = referencePosition - anchorLen; // closest possible to reference point
-            long floor = Math.max(0, referencePosition - MAX_ANCHOR_SEARCH_DISTANCE);
+            long floor = Math.max(0, referencePosition - maxAnchorSearchDistance);
             int[] shifts = sub.anchorBackwardShifts;
 
             // PERFORMANCE: BMH-accelerated candidate search (see
@@ -1005,7 +1028,7 @@ public class DroidSignatureVerifier {
             // satisfies [referencePosition+minOffset, referencePosition+maxOffset].
             // (Symmetric to the EOF case above; see real source's forward branch.)
             long candidate = referencePosition; // closest possible to reference point
-            long ceiling = Math.min(region.length - anchorLen, referencePosition + MAX_ANCHOR_SEARCH_DISTANCE);
+            long ceiling = Math.min(region.length - anchorLen, referencePosition + maxAnchorSearchDistance);
             int[] shifts = sub.anchorForwardShifts;
 
             // PERFORMANCE: BMH-accelerated, symmetric to the backward branch above,
@@ -1087,6 +1110,14 @@ public class DroidSignatureVerifier {
      * iterates seq.length-1 down to 0 for EOFoffset ByteSequences).
      */
     static boolean matchByteSequence(FileRegion region, ByteSequenceDef bs) {
+        return matchByteSequence(region, bs, MAX_ANCHOR_SEARCH_DISTANCE);
+    }
+
+    /** Same as the 2-argument overload above, but with an explicit search
+     *  distance - see matchFixedSubSequence's parameterized overload for the
+     *  full rationale (thread-safe targeted re-scanning without shared
+     *  mutable state). */
+    static boolean matchByteSequence(FileRegion region, ByteSequenceDef bs, long maxAnchorSearchDistance) {
         List<SubSequenceDef> subs = bs.orderedSubSequences;
         boolean backward = (bs.reference == Reference.EOF);
 
@@ -1095,7 +1126,7 @@ public class DroidSignatureVerifier {
         long cursor = -1;
         for (SubSequenceDef sub : subs) {
             long result = first
-                    ? matchFixedSubSequence(region, sub, referencePosition, backward)
+                    ? matchFixedSubSequence(region, sub, referencePosition, backward, maxAnchorSearchDistance)
                     : matchChainedSubSequence(region, sub, cursor);
             if (result < 0) return false;
             cursor = result;
@@ -1106,8 +1137,16 @@ public class DroidSignatureVerifier {
 
     /** A signature matches only if ALL of its ByteSequences match. */
     static boolean matchSignature(FileRegion region, InternalSignatureDef sig) {
+        return matchSignature(region, sig, MAX_ANCHOR_SEARCH_DISTANCE);
+    }
+
+    /** Same as the 2-argument overload above, but with an explicit search
+     *  distance - see matchFixedSubSequence's parameterized overload for the
+     *  full rationale (thread-safe targeted re-scanning without shared
+     *  mutable state). */
+    static boolean matchSignature(FileRegion region, InternalSignatureDef sig, long maxAnchorSearchDistance) {
         for (ByteSequenceDef bs : sig.byteSequences) {
-            if (!matchByteSequence(region, bs)) return false;
+            if (!matchByteSequence(region, bs, maxAnchorSearchDistance)) return false;
         }
         return true;
     }

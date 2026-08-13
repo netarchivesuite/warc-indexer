@@ -20,6 +20,7 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.solr.SolrRecordFactory;
@@ -126,7 +127,7 @@ public class HTMLAnalyserTest {
         SolrRecord solr = SolrRecordFactory.createFactory(null).createRecord();
         InputStream in = new BufferedInputStream(new FileInputStream(SAMPLE), (int) SAMPLE.length());
         in.mark((int) SAMPLE.length());
-        ha.analyse("source", header, in, solr);
+        ha.analyse("source", header, new HTTPHeader(),in, solr);
         return solr;
     }
 }

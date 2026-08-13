@@ -41,6 +41,7 @@ import com.typesafe.config.Config;
 
 import de.l3s.boilerpipe.extractors.ArticleExtractor;
 import uk.bl.wa.extract.Times;
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.util.Instrument;
@@ -139,9 +140,7 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
     }
 
     @Override
-    public void analyse(String source, ArchiveRecordHeader header,
-            InputStream tikainput,
-            SolrRecord solr) {
+    public void analyse(String source, ArchiveRecordHeader header, HTTPHeader httpHeader, InputStream tikainput, SolrRecord solr) {
         final String url = Normalisation.sanitiseWARCHeaderValue(header.getUrl());
         log.debug("Analysing " + url);
 

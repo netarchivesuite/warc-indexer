@@ -19,6 +19,7 @@ import org.archive.url.SURT;
 import com.typesafe.config.Config;
 
 import uk.bl.wa.extract.LinkExtractor;
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.indexer.WARCIndexer;
 import uk.bl.wa.parsers.HtmlFeatureParser;
 import uk.bl.wa.solr.SolrFields;
@@ -86,8 +87,7 @@ public class HTMLAnalyser extends AbstractPayloadAnalyser {
      * @param solr
      */
     @Override
-    public void analyse(String source, ArchiveRecordHeader header,
-            InputStream tikainput, SolrRecord solr) {
+    public void analyse(String source, ArchiveRecordHeader header,HTTPHeader httpHeader,InputStream tikainput, SolrRecord solr) {
         final long start = System.nanoTime();
         Metadata metadata = new Metadata();
         Set<String> hosts = new HashSet<String>();
@@ -96,7 +96,7 @@ public class HTMLAnalyser extends AbstractPayloadAnalyser {
         
         // JSoup NEEDS the URL to function:
         metadata.set( TikaCoreProperties.RESOURCE_NAME_KEY, Normalisation.sanitiseWARCHeaderValue(header.getUrl()) );
-        ParseRunner parser = new ParseRunner( hfp, tikainput, metadata, solr );
+        ParseRunner parser = new ParseRunner( hfp, tikainput, metadata, httpHeader,solr );
         try {
             TimeLimiter.run(parser, 30000L, false);
         } catch( Exception e ) {

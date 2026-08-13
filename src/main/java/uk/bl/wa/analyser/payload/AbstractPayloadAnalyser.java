@@ -18,6 +18,7 @@ import org.archive.io.ArchiveRecordHeader;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrRecord;
 
 /**
@@ -32,22 +33,24 @@ public abstract class AbstractPayloadAnalyser {
 
     public abstract boolean shouldProcess(String mimeType);
 
-    public abstract void analyse(String source, ArchiveRecordHeader header,
-            InputStream tikainput, SolrRecord solr);
+    public abstract void analyse(String source, ArchiveRecordHeader header, HTTPHeader httpHeader,InputStream tikainput, SolrRecord solr);
 
     protected class ParseRunner implements Runnable {
         AbstractParser parser;
         Metadata metadata;
         InputStream input;
-        private SolrRecord solr;
+        private SolrRecord solr;        
+        HTTPHeader httpHeader;
 
-        public ParseRunner( AbstractParser parser, InputStream tikainput, Metadata metadata, SolrRecord solr ) {
+        public ParseRunner( AbstractParser parser, InputStream tikainput, Metadata metadata,HTTPHeader httpHeader, SolrRecord solr ) {
             this.parser = parser;
             this.metadata = metadata;
             this.input = tikainput;
             this.solr = solr;
+            this.httpHeader=httpHeader;
         }
-
+     
+        
         @Override
         public void run() {
             try {
