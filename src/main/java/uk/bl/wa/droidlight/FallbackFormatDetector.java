@@ -1,4 +1,5 @@
 package uk.bl.wa.droidlight;
+
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
@@ -122,6 +123,33 @@ public class FallbackFormatDetector {
     private static final Set<String> MIME_TYPE_SUPPRESSED = new HashSet<>(Arrays.asList(
             "text/html"
     ));
+
+    /**
+     * Additional MIME type ALIASES not declared anywhere in the signature
+     * file itself, but real, historically-common values seen in actual HTTP
+     * traffic for a format PRONOM does recognize under a different MIME
+     * type. Applied as a final step after the normal tiered resolution (see
+     * the constructor) - each alias reuses whatever FormatInfo the target
+     * PUID already resolved to, so it stays automatically consistent with
+     * that format's own real puid/name/mimeType/version rather than
+     * inventing a separate record.
+     *
+     * "text/javascript" and "application/x-javascript" -> x-fmt/423
+     * "JavaScript file": PRONOM's own signature file only declares
+     * "application/javascript" for this format. Both of these are real,
+     * historically common alternate MIME types for JavaScript actually seen
+     * in production HTTP traffic - "text/javascript" is, in fact, the
+     * CURRENTLY preferred value per the modern HTML/WHATWG spec (even though
+     * PRONOM hasn't updated to reflect that), and "application/x-javascript"
+     * is an older, pre-standardization convention some servers still use -
+     * confirmed on a real, live URL (a JavaScript bundle served with exactly
+     * this Content-Type).
+     */
+    private static final Map<String, String> MIME_TYPE_ALIASES = new HashMap<>();
+    static {
+        MIME_TYPE_ALIASES.put("text/javascript", "x-fmt/423");
+        MIME_TYPE_ALIASES.put("application/x-javascript", "x-fmt/423");
+    }
 
     /**
      * Parses the given DROID signature file with this class's own independent
@@ -318,6 +346,20 @@ public class FallbackFormatDetector {
             }
         }
 
+        // Apply MIME type aliases (see MIME_TYPE_ALIASES's javadoc) - a final
+        // step, so each alias reuses whatever FormatInfo the target PUID
+        // already resolved to above.
+        for (Map.Entry<String, String> alias : MIME_TYPE_ALIASES.entrySet()) {
+            String aliasMimeType = alias.getKey();
+            String targetPuid = alias.getValue();
+            for (Candidate c : candidates) {
+                if (c.puid.equals(targetPuid)) {
+                    byMimeType.put(aliasMimeType, new FormatInfo(c.puid, c.name, c.mimeType, c.version));
+                    break;
+                }
+            }
+        }
+
         System.out.println("Loaded " + candidates.size() + " tentative (zero-signature) formats: "
                 + byExtension.size() + " unique extensions, "
                 + byMimeType.size() + " unique MIME types, from " + sourceDescription);
@@ -328,11 +370,33 @@ public class FallbackFormatDetector {
      * "extension" concept DROID itself uses: the part after the LAST '.' in the
      * last path segment, lowercased. Returns null if there's no '.' at all, or
      * if the '.' is the very last character (no actual extension text after it).
+     *
+     * BUG FIX: previously didn't strip a URL query string or fragment before
+     * looking for the extension - a real production case surfaced this:
+     * "https://.../require-jquery.js?v=3fedeea" resolved to extension
+     * "js?v=3fedeea" (the "." in ".js" was still the last "." in the string,
+     * but everything after the "?" got dragged along with it), which isn't a
+     * real, recognized extension at all, so lookup silently failed even
+     * though the actual file extension was plainly ".js". This is a broad,
+     * common case - cache-busting/versioning query parameters like "?v=..."
+     * are extremely common on the modern web, not a rare edge case.
      */
     static String getExtension(String filenameOrPath) {
         if (filenameOrPath == null) return null;
         int lastSlash = Math.max(filenameOrPath.lastIndexOf('/'), filenameOrPath.lastIndexOf('\\'));
         String name = (lastSlash >= 0) ? filenameOrPath.substring(lastSlash + 1) : filenameOrPath;
+
+        int queryOrFragment = -1;
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (c == '?' || c == '#') {
+                queryOrFragment = i;
+                break;
+            }
+        }
+        if (queryOrFragment >= 0) {
+            name = name.substring(0, queryOrFragment);
+        }
 
         int dot = name.lastIndexOf('.');
         if (dot < 0 || dot == name.length() - 1) {

@@ -1,5 +1,4 @@
 package uk.bl.wa.droidlight;
-
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
@@ -339,10 +338,32 @@ public class DroidSignatureVerifierHeuristic {
     /** Same extension-extraction semantics as TentativeFormatDetector.getExtension()
      *  - kept as an independent local copy rather than a cross-class dependency,
      *  same reasoning as this class's other self-contained parsing. */
+    /** Same extension-extraction semantics as FallbackFormatDetector.getExtension()
+     *  - kept as an independent local copy rather than a cross-class dependency,
+     *  same reasoning as this class's other self-contained parsing.
+     *
+     *  BUG FIX: previously didn't strip a URL query string or fragment before
+     *  looking for the extension - see FallbackFormatDetector.getExtension()'s
+     *  javadoc for the real production case that surfaced this (a common,
+     *  broad issue, not a rare edge case - cache-busting query parameters
+     *  like "?v=..." are everywhere on the modern web). */
     static String extractExtension(String hint) {
         if (hint == null) return null;
         int lastSlash = Math.max(hint.lastIndexOf('/'), hint.lastIndexOf('\\'));
         String name = (lastSlash >= 0) ? hint.substring(lastSlash + 1) : hint;
+
+        int queryOrFragment = -1;
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (c == '?' || c == '#') {
+                queryOrFragment = i;
+                break;
+            }
+        }
+        if (queryOrFragment >= 0) {
+            name = name.substring(0, queryOrFragment);
+        }
+
         int dot = name.lastIndexOf('.');
         if (dot < 0 || dot == name.length() - 1) return null;
         return name.substring(dot + 1).toLowerCase();
@@ -538,6 +559,7 @@ public class DroidSignatureVerifierHeuristic {
      * @param hint see detect(File, String)'s javadoc
      */
     public DetectionResult[] detect(InputStream in, String hint) throws Exception {
+        System.out.println("2");
         if (in.markSupported()) {
             try {
                 in.reset();
