@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.archive.format.warc.WARCConstants;
 import org.archive.io.ArchiveRecordHeader;
 import org.archive.util.Base32;
-import org.jwat.common.RandomAccessFileInputStream;
+
 
 import java.io.*;
 import java.security.DigestInputStream;
