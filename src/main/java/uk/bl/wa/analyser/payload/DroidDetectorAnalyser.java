@@ -43,6 +43,7 @@ import org.archive.url.UsableURIFactory;
 import com.typesafe.config.Config;
 
 import uk.bl.wa.droidlight.DetectionResult;
+import uk.bl.wa.droidlight.DroidSignatureVerifier;
 import uk.bl.wa.droidlight.DroidSignatureVerifierHeuristic;
 import uk.bl.wa.droidlight.FallbackFormatDetector;
 import uk.bl.wa.indexer.HTTPHeader;
@@ -62,8 +63,8 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
 
     
     // New implementation of droid that does not get stuck. Uses same signature file.
-    private DroidSignatureVerifierHeuristic droidLight= null;
     
+    private DroidSignatureVerifierHeuristic droidLight= null;
     //This is a fallback for droidLight using MimeType.
     private FallbackFormatDetector fallbackFormatDetector= null;
     private boolean runDroid = true;
@@ -131,7 +132,17 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
                 if( InputStreamUtils.isEmpty(tikainput)){
                     return; //skip early if empty stream
                 }
-                                
+                
+                /*           
+                byte[] peek1 = new byte[8];
+                tikainput.mark(8);
+                int n1 = tikainput.read(peek1);
+                tikainput.reset();
+                StringBuilder hex1 = new StringBuilder();
+                for (int i = 0; i < n1; i++) hex1.append(String.format("%02X ", peek1[i]));
+                log.debug("Bytes seen RIGHT BEFORE dd2.detect(): " + hex1);
+*/
+                
                 // Pass the URL in so DROID can fall back on that:
                 Metadata metadata = new Metadata();
                 if (passUriToFormatTools) {
@@ -146,6 +157,7 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
                 String httpHeaderMimeType= httpHeader.getHeader("Content-Type", "");
                 
                 long dd2Start=System.currentTimeMillis();
+                System.out.println("1");
                 DetectionResult[] detectResult = droidLight.detect(tikainput,header.getUrl());
                 
                 //If no result was found above, try use mimetype match as fallback. Will no scan if already has result
@@ -160,25 +172,19 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
                     version=detectResultWithfallback[0].getVersion();
                     System.out.println("with fallback detected:"+droidLightDetection);
                 }
-                else {
-                    /// Deep scan heavy signatures. JPEG is only common case that was not found above.
-                    DetectionResult[] detectResultDeep =  droidLight.rescanLongAnchorSignatures(tikainput);
-                    System.out.println("DEEP SCAN:"+droidLightDetection);
-                    if (detectResultDeep.length >0) {
-                        droidLightDetection=detectResultDeep[0].getPrimaryMimeTypeWithVersion();//only want one                
-                        detectResultDeep[0].getVersion();
-                        System.out.println("DEEP SCAN2:"+droidLightDetection);
-                    }
-                }
+                //large dataset has shown doing full scan 'droidLight.rescanLongAnchorSignatures(tikainput)' never
+                //found anything new.
                                 
-                                
+                
                 if (droidLightDetection != null) { 
                    solr.setField(SolrFields.CONTENT_TYPE_DROID,  droidLightDetection);        
                 }
                 else {
-                  System.out.println(header);
-                    System.out.println("NODETECT!"); //TODO REMOVE!
-                    
+                    System.out.println(header);
+                    System.out.println("NODETECT! for mimetype:"+httpHeaderMimeType); //TODO REMOVE!
+                    log.debug("No detection for " + header.getUrl() + " - first bytes: " + InputStreamUtils.peekFirst10K(tikainput));
+                    log.debug("First 100 bytes as hex: " + InputStreamUtils.peekFirstBytesAsHex(tikainput, 170));
+               
                 }
                 if (version != null) {                   
                     solr.setField(SolrFields.CONTENT_VERSION,  version); //notice can be overwritten later in workflow when comparing to tika.
