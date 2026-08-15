@@ -44,7 +44,6 @@ import com.typesafe.config.Config;
 
 import uk.bl.wa.droidlight.DetectionResult;
 import uk.bl.wa.droidlight.DroidSignatureVerifier;
-import uk.bl.wa.droidlight.DroidSignatureVerifierHeuristic;
 import uk.bl.wa.droidlight.FallbackFormatDetector;
 import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
@@ -62,11 +61,9 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
     private static Logger log = LoggerFactory.getLogger( DroidDetectorAnalyser.class );
 
     
-    // New implementation of droid that does not get stuck. Uses same signature file.
-    
-    private DroidSignatureVerifierHeuristic droidLight= null;
-    //This is a fallback for droidLight using MimeType.
-    private FallbackFormatDetector fallbackFormatDetector= null;
+    // New implementation of droid that does not get stuck. Uses same signature file.    
+    private DroidSignatureVerifier droidLight= null;
+
     private boolean runDroid = true;
 
     private boolean passUriToFormatTools = false;
@@ -78,7 +75,7 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
 
             //Read from resources
             try (InputStream in = getClass().getClassLoader().getResourceAsStream(signatureFile)) {
-                droidLight = new DroidSignatureVerifierHeuristic(in);
+                droidLight = new DroidSignatureVerifier(in);
                 log.info("Droid-light initialized. #signatures loaded="+droidLight.getSignatureCount() +" from signature file:"+signatureFile);                          
             }                       
             
@@ -86,18 +83,7 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
             log.error("Exception during DroidDetector setup.", e);   
             droidLight=null;
         }
-        // Attempt to set up fallback
-        try {
-            try (InputStream in = getClass().getClassLoader().getResourceAsStream(signatureFile)) {
-                fallbackFormatDetector = new  FallbackFormatDetector(in);
-                log.info("FallbackFormatDetector initialized. #signatures loaded="+droidLight.getSignatureCount() +" from signature file:"+signatureFile);                          
-            }                       
-            
-        } catch (Exception e) {
-            log.error("Exception during DroidDetector setup.", e);   
-            fallbackFormatDetector=null;
-        }
-        
+    
         
         Instrument.createSortedStat("WARCPayloadAnalyzers.analyze#droid",
                 Instrument.SORT.avgtime, 5);
@@ -157,24 +143,31 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
                 String httpHeaderMimeType= httpHeader.getHeader("Content-Type", "");
                 
                 long dd2Start=System.currentTimeMillis();
-                System.out.println("1");
-                DetectionResult[] detectResult = droidLight.detect(tikainput,header.getUrl());
-                
-                //If no result was found above, try use mimetype match as fallback. Will no scan if already has result
-                DetectionResult[] detectResultWithfallback = fallbackFormatDetector.withFallback(detectResult,header.getUrl(),httpHeaderMimeType);          
+                String droidLightDetection=null;
+                DetectionResult matchedDetection=null;
+                String version=null;
+                DetectionResult[] detectResult = droidLight.detectCommonMimeTypes(tikainput,httpHeaderMimeType);
+                if (detectResult.length >0) {
+                    matchedDetection=detectResult[0];
+                    droidLightDetection=matchedDetection.getPrimaryMimeTypeWithVersion();
+                    version=matchedDetection.getVersion();                   
+                   System.out.println("mimetype scan only matched:"+matchedDetection);
+                    
+                }
+                else {
+                     detectResult = droidLight.detect(tikainput);
+                     System.out.println("full scan started");
+                     if (detectResult.length >0) {                        
+                        matchedDetection=detectResult[0];
+                        droidLightDetection=matchedDetection.getPrimaryMimeTypeWithVersion();
+                        version=matchedDetection.getVersion();
+                        System.out.println("full scan matched:"+matchedDetection);
+                    }                                          
+                }          
                 System.out.println("url:"+header.getUrl());
                 System.out.println("minetype http header:"+httpHeaderMimeType);                
                 System.out.println("dd2 time:"+(System.currentTimeMillis()-dd2Start));                
-                String droidLightDetection=null;
-                String version=null;
-                if (detectResultWithfallback.length >0) {                
-                    droidLightDetection=detectResultWithfallback[0].getPrimaryMimeTypeWithVersion();//Only want one                
-                    version=detectResultWithfallback[0].getVersion();
-                    System.out.println("with fallback detected:"+droidLightDetection);
-                }
-                //large dataset has shown doing full scan 'droidLight.rescanLongAnchorSignatures(tikainput)' never
-                //found anything new.
-                                
+                
                 
                 if (droidLightDetection != null) { 
                    solr.setField(SolrFields.CONTENT_TYPE_DROID,  droidLightDetection);        
@@ -182,8 +175,8 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
                 else {
                     System.out.println(header);
                     System.out.println("NODETECT! for mimetype:"+httpHeaderMimeType); //TODO REMOVE!
-                    log.debug("No detection for " + header.getUrl() + " - first bytes: " + InputStreamUtils.peekFirst10K(tikainput));
-                    log.debug("First 100 bytes as hex: " + InputStreamUtils.peekFirstBytesAsHex(tikainput, 170));
+                    log.debug("No detection for " + header.getUrl() + " - first bytes: ");            
+                    log.debug( InputStreamUtils.peekFirst10K(tikainput));
                
                 }
                 if (version != null) {                   

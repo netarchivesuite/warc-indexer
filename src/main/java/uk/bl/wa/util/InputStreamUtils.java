@@ -443,4 +443,83 @@ public class InputStreamUtils {
         return firstByte == -1;
     }
     
+    /**
+     * Reads and returns (as a String) up to the first 10,000 bytes of the
+     * given InputStream, WITHOUT consuming them - the stream is reset back
+     * to its original position afterward, so it remains fully usable for
+     * whatever else needs to read it (e.g. droid-light's own detect() call
+     * right after this). Intended for debugging cases where detection found
+     * nothing, to see exactly what bytes were actually received.
+     *
+     * Requires the stream to support mark/reset; if it doesn't, returns a
+     * placeholder message explaining that, rather than risk silently
+     * consuming/corrupting the stream for whatever reads it next.
+     *
+     * Decodes the peeked bytes as UTF-8. For genuinely binary content this
+     * will produce garbled/unreadable output - expected and fine here, since
+     * this is specifically for debugging "detection found nothing" cases,
+     * which in practice are very often text-based formats.
+     */
+    public static String peekFirst10K(InputStream in) throws IOException {
+        if (in == null) return "(null stream)";
+        if (!in.markSupported()) return "(stream doesn't support mark/reset - cannot safely peek)";
+        in.reset();
+        
+        int limit = 10_000;
+        in.mark(limit);
+        byte[] buffer = new byte[limit];
+        int totalRead = 0;
+        int n;
+        while (totalRead < limit && (n = in.read(buffer, totalRead, limit - totalRead)) != -1) {
+            totalRead += n;
+        }
+        in.reset();
+
+        return new String(buffer, 0, totalRead, java.nio.charset.StandardCharsets.UTF_8);
+    }
+    
+    /**
+     * Reads and returns (as a hex string, e.g. "3C 3F 78 6D") up to the first
+     * maxBytes of the given InputStream's TRUE payload start - not wherever
+     * the stream currently happens to be positioned. Same non-destructive
+     * mark/reset behavior as peekFirst10K() (see its javadoc for the full
+     * rationale) - the stream is left fully intact and re-readable afterward.
+     *
+     * Useful alongside peekFirst10K() when debugging: hex shows EVERY byte
+     * exactly, including ones that render invisibly or ambiguously as text
+     * (a BOM, CRLF vs LF, smart quotes vs straight quotes, etc.) - things
+     * that can silently break a byte-exact signature check without being
+     * visible in a text-decoded peek.
+     *
+     * Never reads past the stream's own actual content - the underlying
+     * read() naturally stops at EOF (returning -1) regardless of maxBytes,
+     * so a short payload just returns fewer bytes than requested rather than
+     * blocking or reading into unrelated data.
+     */
+    public static String peekFirstBytesAsHex(InputStream in, int maxBytes) throws IOException {
+        if (in == null) return "(null stream)";
+        if (!in.markSupported()) return "(stream doesn't support mark/reset - cannot safely peek)";
+
+        try {
+            in.reset(); // rewind to the outer/upstream mark FIRST
+        } catch (IOException e) {
+            return "(reset() to outer mark failed - stream position unknown: " + e + ")";
+        }
+
+        in.mark(maxBytes);
+        byte[] buffer = new byte[maxBytes];
+        int totalRead = 0;
+        int n;
+        while (totalRead < maxBytes && (n = in.read(buffer, totalRead, maxBytes - totalRead)) != -1) {
+            totalRead += n;
+        }
+        in.reset();
+
+        StringBuilder hex = new StringBuilder();
+        for (int i = 0; i < totalRead; i++) {
+            hex.append(String.format("%02X ", buffer[i]));
+        }
+        return hex.toString().trim() + " (" + totalRead + " bytes)";
+    }
+    
 }
