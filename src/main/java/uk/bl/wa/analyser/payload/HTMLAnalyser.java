@@ -114,7 +114,7 @@ public class HTMLAnalyser extends AbstractPayloadAnalyser {
 
                 String urlNorm  = normaliseLinks ? Normalisation.canonicaliseURL(link) : link;
                 if (urlNorm.startsWith("data:") || urlNorm.length() > 2048){
-                    log.info("Ignoring image link. Starting with 'data:' or more than 2048 characters:"+urlNorm);
+                    log.debug("Ignoring image link. Starting with 'data:' or more than 2048 characters:"+urlNorm);
                     continue;
                 }
               solr.addField( SolrFields.SOLR_LINKS_IMAGES, urlNorm);
