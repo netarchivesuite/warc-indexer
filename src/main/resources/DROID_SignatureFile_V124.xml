@@ -18694,6 +18694,27 @@
                 </SubSequence>
             </ByteSequence>
         </InternalSignature>
+        <InternalSignature ID="9762" Specificity="Specific">
+            <ByteSequence Reference="BOFoffset">
+                <SubSequence MinFragLength="0" Position="1"
+                    SubSeqMaxOffset="0" SubSeqMinOffset="0">
+                    <Sequence>3C737667</Sequence>
+                    <DefaultShift>5</DefaultShift>
+                    <Shift Byte="3C">4</Shift>
+                    <Shift Byte="67">1</Shift>
+                    <Shift Byte="73">3</Shift>
+                    <Shift Byte="76">2</Shift>
+                </SubSequence>
+                <SubSequence MinFragLength="0" Position="2" SubSeqMinOffset="0">
+                    <Sequence>7376673E</Sequence>
+                    <DefaultShift>5</DefaultShift>
+                    <Shift Byte="3E">1</Shift>
+                    <Shift Byte="67">2</Shift>
+                    <Shift Byte="73">4</Shift>
+                    <Shift Byte="76">3</Shift>
+                </SubSequence>
+            </ByteSequence>
+        </InternalSignature>      
         <InternalSignature ID="733" Specificity="Specific">
             <ByteSequence Reference="BOFoffset">
                 <SubSequence MinFragLength="0" Position="1"
@@ -57131,6 +57152,7 @@
         <FileFormat ID="634" MIMEType="image/svg+xml"
             Name="Scalable Vector Graphics" PUID="fmt/91" Version="1.0">
             <InternalSignatureID>24</InternalSignatureID>
+            <InternalSignatureID>9762</InternalSignatureID>
             <Extension>svg</Extension>
             <HasPriorityOverFileFormatID>638</HasPriorityOverFileFormatID>
         </FileFormat>
