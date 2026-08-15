@@ -16,14 +16,14 @@ import org.apache.tika.metadata.TikaCoreProperties;
 import org.junit.Before;
 import org.junit.Test;
 
-import uk.bl.wa.droidlight.DroidSignatureVerifierHeuristic;
+import uk.bl.wa.droidlight.DroidSignatureVerifier;
 /**
  * @author Andrew Jackson <Andrew.Jackson@bl.uk>
  *
  */
 public class DroidDetectorTest {
 
-    private DroidSignatureVerifierHeuristic dd;
+    private DroidSignatureVerifier dd;
 
     /**
      * @throws SignatureParseException 
@@ -35,7 +35,7 @@ public class DroidDetectorTest {
 
         //Read from resources
         try (InputStream in = getClass().getClassLoader().getResourceAsStream("DROID_SignatureFile_V124.xml")) {
-            dd = new DroidSignatureVerifierHeuristic(in);
+            dd = new DroidSignatureVerifier(in);
         }
               
     }
@@ -63,10 +63,9 @@ public class DroidDetectorTest {
         metadata.set(TikaCoreProperties.RESOURCE_NAME_KEY, file.getName());
 
         // Test identification two ways:
-        assertEquals("ID of " + filename + " as File, failed.", expected, dd.detect(file,filename)[0].toString());
+        
 
-        assertEquals("ID of " + filename + " as InputStream, failed.",
-                expected, dd.detect(new FileInputStream(file), filename)[0].toString());
+        assertEquals("ID of " + filename + " as InputStream, failed.",expected, dd.detect(new FileInputStream(file))[0].toString());
                         
 
     }
