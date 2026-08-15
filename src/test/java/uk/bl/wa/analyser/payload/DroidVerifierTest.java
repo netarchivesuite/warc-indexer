@@ -5,7 +5,7 @@ import java.io.File;
 import uk.bl.wa.droidlight.DetectionResult;
 import uk.bl.wa.droidlight.DroidSignatureVerifier;
 
-public class DroidVerifierHeuristicTest {
+public class DroidVerifierTest {
     
     public static void main(String[] args) throws Exception{
         
