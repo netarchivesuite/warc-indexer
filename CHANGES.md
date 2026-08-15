@@ -1,6 +1,24 @@
 **NOTE** Generally, we only add terms to the Solr schema, so it should usually be compatible with previous versions (i.e. clients should be able to query across both without modification). However, there are been a small number of fixes which unfortunately required breaking changes you may need to be aware of or work-around. e.g. [hash becomes single-valued](https://github.com/ukwa/webarchive-discovery/issues/95) from 3.0.0 to 3.1.0
 
 
+
+3.5.1
+-----
+
+### Replaced DROID/nanite with a custom re-implementation (`droid-light`)
+
+The previous DROID/nanite-based format identification could hang indefinitely on certain files — a combinatorial explosion in one specific signature's fragment-matching logic (triggered by, among others, some MP3 files) could stall indexing entirely, with no timeout or recovery. `droid-light` is a from-scratch re-implementation of DROID's binary signature matching, built and extensively tested against real archived content, with this failure mode structurally eliminated — matching is now bounded and predictable regardless of file content.
+
+Signature file upgraded to `DROID_SignatureFile_V124.xml` (from the previous, older version).
+
+Performance is broadly comparable to the previous implementation — some formats (e.g. MP4) are measurably faster; most are roughly on par. A new fast-path mode also allows checking against just the small set of signatures relevant to a file's declared HTTP `Content-Type`, when available, before falling back to a full scan.
+
+- **Memory safety**: large files are read via bounded head+tail windows rather than being loaded in full, so memory usage stays predictable regardless of file size.
+- **Known limitation, not a regression**: formats with no binary signature in PRONOM (e.g. CSS, JavaScript, plain text) were never identifiable by DROID either, old or new — `content_type_droid` will not report these regardless of implementation.
+- **Local signature additions**: two signature entries have been added locally, beyond the stock V124 release — one for an EOT font version not covered by PRONOM, one for SVG files without an XML declaration.
+
+
+
 3.5.0
 -----
 
