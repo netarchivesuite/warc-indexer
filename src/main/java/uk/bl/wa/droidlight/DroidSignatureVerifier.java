@@ -1612,6 +1612,37 @@ public class DroidSignatureVerifier {
         return signatures.size();
     }
 
+    /**
+     * @param mimeType a MIME type - see normalizeMimeType() for how it's
+     *                 matched (parameters stripped, case-insensitive)
+     * @return how many signatures detectCommonMimeTypes() would actually
+     *         check for this exact mimeType. A return value of 0 means
+     *         detectCommonMimeTypes() would do no work at all for this
+     *         mimetype and always return empty - either because it's
+     *         unrecognized, or because it's recognized but genuinely has no
+     *         binary signature anywhere (e.g. "text/css",
+     *         "application/javascript") - useful as a direct signal for
+     *         whether it's worth calling detectCommonMimeTypes() at all for
+     *         a given mimetype, skipping it (and the stream read it
+     *         requires) entirely when this is 0.
+     */
+    public int getSignatureCountForMimeType(String mimeType) {
+        String normalized = normalizeMimeType(mimeType);
+        List<InternalSignatureDef> candidates = (normalized != null) ? commonMimeTypeSignatures.get(normalized) : null;
+        return (candidates != null) ? candidates.size() : 0;
+    }
+
+    /**
+     * @return the total size of the common-format signature set (the union
+     *         across all of COMMON_MIME_TYPES) - informational only; unlike
+     *         an earlier version of this class, detectCommonMimeTypes() no
+     *         longer falls back to checking this whole set for unrecognized
+     *         mimetypes (see its own javadoc for why).
+     */
+    public int getCommonSignatureCount() {
+        return allCommonSignatures.size();
+    }
+
     /** Populates commonMimeTypeSignatures and allCommonSignatures - see their
      *  own field javadocs. Called once, at construction time. */
     private void precomputeCommonMimeTypeSignatures() {
@@ -1630,6 +1661,18 @@ public class DroidSignatureVerifier {
                 }
             }
         }
+
+        // "text/javascript" isn't declared anywhere in PRONOM - only
+        // "application/javascript" is (for x-fmt/423, which itself has zero
+        // signatures - JavaScript has no binary signature at all). Without
+        // this, "text/javascript" would simply be a missing key rather than
+        // a known-empty one, which used to mean falling back to scanning the
+        // entire common-format set for nothing. Explicitly aliasing it here
+        // means getSignatureCountForMimeType("text/javascript") correctly
+        // reports 0, same as "application/javascript" - both genuinely have
+        // no binary signature to check, not just "we don't recognize this".
+        commonMimeTypeSignatures.putIfAbsent("text/javascript",
+                commonMimeTypeSignatures.getOrDefault("application/javascript", new ArrayList<>()));
     }
 
     /** Linear lookup by signature ID - fine here since this only runs once,
@@ -1948,16 +1991,31 @@ public class DroidSignatureVerifier {
 
     /**
      * Fast, targeted detection restricted to COMMON_MIME_TYPES (see that
-     * field's javadoc) - checks only the signatures for formats declaring the
-     * given mimeType if that specific mimeType is one this instance has
-     * indexed, otherwise checks the full common-format signature set (still a
-     * small fraction of all loaded signatures, not an exhaustive scan).
+     * field's javadoc) - checks ONLY the signatures for formats declaring the
+     * given mimeType, and only if that specific mimeType is one this instance
+     * has indexed with at least one real signature. If not - an unrecognized
+     * mimetype, or a recognized one that genuinely has zero binary signatures
+     * anywhere (e.g. "text/css", "application/javascript" - CSS and
+     * JavaScript have no binary signature in PRONOM at all) - this returns
+     * empty immediately, WITHOUT scanning anything. There is deliberately no
+     * "check the whole common set as a broader guess" fallback here: an HTTP
+     * Content-Type header can't be fully trusted, so a mimetype-only signal
+     * is never treated as license to report a less-specific match - either a
+     * real signature confirms it, or this reports nothing at all.
      *
      * Intended as an OPTIONAL, explicit fast-path attempt before falling back
      * to the full, exhaustive detect() - this method deliberately does NOT do
      * that fallback itself. If it returns an empty array, the caller decides
-     * whether to call detect() next - that decision belongs to the caller,
-     * not this method.
+     * whether to call detect() next.
+     *
+     * getSignatureCountForMimeType(mimeType) == 0 tells you IN ADVANCE whether
+     * this method would do any work at all for a given mimetype - useful to
+     * skip calling this entirely (and the stream read it requires) for
+     * mimetypes known to always find nothing, going straight to detect()
+     * instead. This applies uniformly whether the mimetype is genuinely
+     * signature-less (CSS, JS) or simply unrecognized/missing (e.g. a
+     * robots.txt response with no Content-Type at all) - both cases mean
+     * "nothing to check here".
      *
      * Unlike a filename/URL-based hint, this takes no filename or URL at all -
      * just the MIME type - so it isn't affected by URL-parsing edge cases
@@ -1967,12 +2025,16 @@ public class DroidSignatureVerifier {
      *                 caller retains ownership and is responsible for closing it
      * @param mimeType a MIME type (e.g. from an HTTP Content-Type header), with
      *                 or without trailing parameters (e.g. both "text/html" and
-     *                 "text/html; charset=UTF-8" work) - may be null/blank, in
-     *                 which case the full common-format set is checked
+     *                 "text/html; charset=UTF-8" work) - may be null/blank
      * @return array of 0 to 10 DetectionResults, index 0 = top candidate -
-     *         empty if nothing in the checked set matched
+     *         empty if the mimetype isn't indexed, or if it is but nothing
+     *         in that specific, targeted set matched
      */
     public DetectionResult[] detectCommonMimeTypes(InputStream in, String mimeType) throws Exception {
+        String normalized = normalizeMimeType(mimeType);
+        List<InternalSignatureDef> candidates = (normalized != null) ? commonMimeTypeSignatures.get(normalized) : null;
+        if (candidates == null || candidates.isEmpty()) return new DetectionResult[0];
+
         if (in.markSupported()) {
             try {
                 in.reset();
@@ -1983,14 +2045,10 @@ public class DroidSignatureVerifier {
         FileRegion region = readBoundedRegion(in);
         if (region.length == 0) return new DetectionResult[0];
 
-        String normalized = normalizeMimeType(mimeType);
-        List<InternalSignatureDef> candidates = (normalized != null) ? commonMimeTypeSignatures.get(normalized) : null;
-        if (candidates == null) candidates = allCommonSignatures;
-
         // Automatically use the larger JPEG-specific distance for JPEG and
         // known variants - see JPEG_ANCHOR_SEARCH_DISTANCE's javadoc. Every
         // other mimetype still uses the fast default (MAX_ANCHOR_SEARCH_DISTANCE).
-        long searchDistance = (normalized != null && JPEG_MIME_TYPES.contains(normalized))
+        long searchDistance = JPEG_MIME_TYPES.contains(normalized)
                 ? JPEG_ANCHOR_SEARCH_DISTANCE : MAX_ANCHOR_SEARCH_DISTANCE;
 
         List<Integer> matchedSignatureIds = new ArrayList<>();

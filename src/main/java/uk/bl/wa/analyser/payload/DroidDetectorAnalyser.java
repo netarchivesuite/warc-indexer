@@ -32,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.commons.io.IOExceptionList;
 import org.apache.commons.io.IOIndexedException;
-import org.apache.solr.common.SolrInputField;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
 
@@ -44,7 +43,6 @@ import com.typesafe.config.Config;
 
 import uk.bl.wa.droidlight.DetectionResult;
 import uk.bl.wa.droidlight.DroidSignatureVerifier;
-import uk.bl.wa.droidlight.FallbackFormatDetector;
 import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
@@ -54,7 +52,7 @@ import uk.bl.wa.util.Normalisation;
 
 
 /**
- * @author anj
+ * @author anj/teg
  *
  */
 public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
@@ -143,42 +141,42 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
                 String httpHeaderMimeType= httpHeader.getHeader("Content-Type", "");
                 
                 long dd2Start=System.currentTimeMillis();
-                String droidLightDetection=null;
-                DetectionResult matchedDetection=null;
-                String version=null;
-                DetectionResult[] detectResult = droidLight.detectCommonMimeTypes(tikainput,httpHeaderMimeType);
-                if (detectResult.length >0) {
-                    matchedDetection=detectResult[0];
-                    droidLightDetection=matchedDetection.getPrimaryMimeTypeWithVersion();
-                    version=matchedDetection.getVersion();                   
-                   System.out.println("mimetype scan only matched:"+matchedDetection);
-                    
+           
+                //Since http content-type is generally reliable, just testing against signatures for that mimetype will
+                //often match and save performance instead of scanning all.
+                DetectionResult[] detect = new DetectionResult[0];
+                DetectionResult droidLightDetection= null;
+                
+                if (droidLight.getSignatureCountForMimeType( httpHeaderMimeType) > 0) {
+                    detect = droidLight.detectCommonMimeTypes(tikainput,  httpHeaderMimeType);
+                    System.out.println("mimetyp scan hits:"+detect.length);
                 }
-                else {
-                     detectResult = droidLight.detect(tikainput);
-                     System.out.println("full scan started");
-                     if (detectResult.length >0) {                        
-                        matchedDetection=detectResult[0];
-                        droidLightDetection=matchedDetection.getPrimaryMimeTypeWithVersion();
-                        version=matchedDetection.getVersion();
-                        System.out.println("full scan matched:"+matchedDetection);
-                    }                                          
-                }          
+
+                if (detect.length == 0) { //Do full scan if mimetype scan found nothing or mimetype was not in the common list.
+                    System.out.println("full scan for:"+httpHeaderMimeType);
+                    detect = droidLight.detect(tikainput);
+                }
+                
+                if (detect.length >0) {
+                    droidLightDetection=detect[0];                    
+                }                                      
+     
                 System.out.println("url:"+header.getUrl());
                 System.out.println("minetype http header:"+httpHeaderMimeType);                
                 System.out.println("dd2 time:"+(System.currentTimeMillis()-dd2Start));                
-                
-                
+                              
+                String version= null;
                 if (droidLightDetection != null) { 
-                   solr.setField(SolrFields.CONTENT_TYPE_DROID,  droidLightDetection);        
+                   solr.setField(SolrFields.CONTENT_TYPE_DROID,  droidLightDetection.getPrimaryMimeTypeWithVersion());
+                   version=droidLightDetection.getVersion();
                 }
                 else {
                     System.out.println(header);
                     System.out.println("NODETECT! for mimetype:"+httpHeaderMimeType); //TODO REMOVE!
                     log.debug("No detection for " + header.getUrl() + " - first bytes: ");            
-                    log.debug( InputStreamUtils.peekFirst10K(tikainput));
-               
+                    log.debug( InputStreamUtils.peekFirst10K(tikainput));              
                 }
+
                 if (version != null) {                   
                     solr.setField(SolrFields.CONTENT_VERSION,  version); //notice can be overwritten later in workflow when comparing to tika.
                 }                
