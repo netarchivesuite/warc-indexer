@@ -1,5 +1,4 @@
 package uk.bl.wa.droidlight;
-
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
@@ -1502,6 +1501,69 @@ public class DroidSignatureVerifier {
     private final List<FileFormatDef> formats;
 
     /**
+     * Common web-content MIME types, checked by detectCommonMimeTypes() below
+     * before falling back to a full scan (or, if the caller chooses, before
+     * the caller falls back to detect() themselves). A REASONABLE DEFAULT
+     * based on general knowledge of typical web-archive content, NOT derived
+     * from any real frequency data - DROID's own signature file has no notion
+     * of "how common is this format" at all. Deliberately a plain, mutable,
+     * public static field so it can be tuned once real distribution data is
+     * available.
+     */
+    public static List<String> COMMON_MIME_TYPES = new ArrayList<>(Arrays.asList(
+            "text/html",
+            "text/plain",
+            "text/css",
+            "application/javascript",
+            "text/javascript",
+            "application/json",
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+            "image/svg+xml",
+            "image/vnd.microsoft.icon",
+            "image/x-icon",
+            "application/pdf",
+            "video/mp4",
+            "audio/mpeg",
+            "application/xml",
+            "text/xml",
+            "application/zip",
+            "font/woff",
+            "font/woff2"
+    ));
+
+    // Precomputed once at construction time (see precomputeCommonMimeTypeSignatures()):
+    // signatures belonging to a format that declares one of COMMON_MIME_TYPES,
+    // indexed by that specific MIME type - used by detectCommonMimeTypes() to
+    // check only the signatures for the caller's given mimeType, when that
+    // mimeType is one of the ones we've indexed.
+    private final Map<String, List<InternalSignatureDef>> commonMimeTypeSignatures = new HashMap<>();
+    // Union of ALL of the above, deduplicated - used as the fallback when the
+    // caller's mimeType isn't one we've specifically indexed.
+    private final List<InternalSignatureDef> allCommonSignatures = new ArrayList<>();
+
+    /**
+     * Search distance used automatically for JPEG (and known variants) within
+     * detectCommonMimeTypes() - see MAX_ANCHOR_SEARCH_DISTANCE's own javadoc
+     * for why the fast default (3000) isn't always enough: a real JPEG with a
+     * large embedded EXIF thumbnail can push its EOF trailer up to ~65,536
+     * bytes from the end. This value (150,000) gives comfortable margin,
+     * confirmed working against a real such file. Applied automatically, not
+     * as a separate opt-in call - detectCommonMimeTypes() checks whether the
+     * given mimeType is JPEG or a known variant and uses this distance for
+     * that one call only; every other mimetype still uses the fast default.
+     */
+    public static long JPEG_ANCHOR_SEARCH_DISTANCE = 150_000;
+
+    /** Known real-world MIME type variants for JPEG - "image/pjpeg" is a
+     *  legacy Internet-Explorer-specific alternate for progressive JPEG. */
+    private static final Set<String> JPEG_MIME_TYPES = new HashSet<>(Arrays.asList(
+            "image/jpeg", "image/pjpeg"
+    ));
+
+    /**
      * Parses the given DROID signature file once, keeping the resulting
      * signatures and file-format definitions in this instance for reuse across
      * any number of detect() calls.
@@ -1509,13 +1571,84 @@ public class DroidSignatureVerifier {
      * @param signatureFile the DROID_SignatureFile*.xml to parse
      */
     public DroidSignatureVerifier(File signatureFile) throws Exception {
-        System.out.println("Parsing full signature structure (anchors + fragments + endianness): " + signatureFile);
+        this(new FileInputStream(signatureFile), signatureFile.toString());
+    }
+
+    /**
+     * Same as the File constructor, but reads from an already-open InputStream
+     * instead - e.g. a classpath resource stream
+     * (getClass().getClassLoader().getResourceAsStream("DROID_SignatureFile_V124.xml")),
+     * which is what you need once the signature file ships as a Maven resource
+     * packed inside a jar - a plain java.io.File can't represent a jar entry at
+     * all. Does not close the given stream - the caller retains ownership.
+     *
+     * @param signatureStream an already-open stream over the signature XML
+     */
+    public DroidSignatureVerifier(InputStream signatureStream) throws Exception {
+        this(signatureStream, "<input stream>");
+    }
+
+    private DroidSignatureVerifier(InputStream signatureStream, String sourceDescription) throws Exception {
+        System.out.println("Parsing full signature structure (anchors + fragments + endianness): " + sourceDescription);
         long t0 = System.nanoTime();
-        this.signatures = parseSignatures(signatureFile);
-        this.formats = parseFileFormats(signatureFile);
+        // Read once into memory since the constructor needs to parse the same
+        // underlying XML twice (signatures, formats) and an InputStream can
+        // only be consumed once.
+        byte[] xmlBytes = signatureStream.readAllBytes();
+        this.signatures = parseSignatures(new ByteArrayInputStream(xmlBytes));
+        this.formats = parseFileFormats(new ByteArrayInputStream(xmlBytes));
         long t1 = System.nanoTime();
         System.out.printf("  Parsed %,d signatures and %,d file formats in %.1f ms%n",
                 signatures.size(), formats.size(), (t1 - t0) / 1e6);
+
+        precomputeCommonMimeTypeSignatures();
+    }
+
+    /**
+     * @return the number of DROID signatures loaded from the signature file
+     *         (~2,258 for a typical current PRONOM release).
+     */
+    public int getSignatureCount() {
+        return signatures.size();
+    }
+
+    /** Populates commonMimeTypeSignatures and allCommonSignatures - see their
+     *  own field javadocs. Called once, at construction time. */
+    private void precomputeCommonMimeTypeSignatures() {
+        Set<Integer> addedSigIds = new HashSet<>();
+        for (String mimeType : COMMON_MIME_TYPES) {
+            for (FileFormatDef fmt : formats) {
+                if (fmt.mimeType == null || !mimeTypeMatches(fmt.mimeType, mimeType)) continue;
+                List<InternalSignatureDef> forThisMimeType = commonMimeTypeSignatures.computeIfAbsent(mimeType, k -> new ArrayList<>());
+                for (int sigId : fmt.signatureIds) {
+                    InternalSignatureDef sig = signatureById(sigId);
+                    if (sig == null) continue;
+                    forThisMimeType.add(sig);
+                    if (addedSigIds.add(sigId)) {
+                        allCommonSignatures.add(sig);
+                    }
+                }
+            }
+        }
+    }
+
+    /** Linear lookup by signature ID - fine here since this only runs once,
+     *  during construction, not per detect() call. */
+    private InternalSignatureDef signatureById(int id) {
+        for (InternalSignatureDef sig : signatures) {
+            if (sig.id == id) return sig;
+        }
+        return null;
+    }
+
+    /** Whether a (possibly comma-joined, e.g. "image/vnd.microsoft.icon,
+     *  image/x-icon" - a real pattern in the signature file itself) MIMEType
+     *  attribute value contains the given target MIME type. */
+    private static boolean mimeTypeMatches(String mimeTypeAttribute, String target) {
+        for (String part : mimeTypeAttribute.split(",")) {
+            if (part.trim().equalsIgnoreCase(target)) return true;
+        }
+        return false;
     }
 
     /**
@@ -1765,6 +1898,16 @@ public class DroidSignatureVerifier {
             return new DetectionResult[0];
         }
 
+        return buildResults(matchedSignatureIds);
+    }
+
+    /** Shared by detectFromRegion() and detectCommonMimeTypes(): resolves
+     *  priority among the given matched signature IDs' formats and builds the
+     *  final, ordered DetectionResult[] (resolved survivors first, then any
+     *  suppressed raw matches, capped at 10) - see detectFromRegion()'s
+     *  javadoc/comments for the full rationale, kept here once rather than
+     *  duplicated in both callers. */
+    private DetectionResult[] buildResults(List<Integer> matchedSignatureIds) {
         List<FileFormatDef> matchedFormats = new ArrayList<>();
         for (FileFormatDef fmt : formats) {
             for (int sigId : fmt.signatureIds) {
@@ -1787,8 +1930,6 @@ public class DroidSignatureVerifier {
             }
         }
 
-        // Build the final ordered list: priority-resolution survivors first (best
-        // guess), then any suppressed raw matches after, capped at 10 total.
         List<FileFormatDef> ordered = new ArrayList<>(resolved);
         for (FileFormatDef fmt : matchedFormats) {
             if (!resolved.contains(fmt)) {
@@ -1803,6 +1944,76 @@ public class DroidSignatureVerifier {
             results[i] = new DetectionResult(fmt.puid, fmt.name, fmt.mimeType, fmt.version);
         }
         return results;
+    }
+
+    /**
+     * Fast, targeted detection restricted to COMMON_MIME_TYPES (see that
+     * field's javadoc) - checks only the signatures for formats declaring the
+     * given mimeType if that specific mimeType is one this instance has
+     * indexed, otherwise checks the full common-format signature set (still a
+     * small fraction of all loaded signatures, not an exhaustive scan).
+     *
+     * Intended as an OPTIONAL, explicit fast-path attempt before falling back
+     * to the full, exhaustive detect() - this method deliberately does NOT do
+     * that fallback itself. If it returns an empty array, the caller decides
+     * whether to call detect() next - that decision belongs to the caller,
+     * not this method.
+     *
+     * Unlike a filename/URL-based hint, this takes no filename or URL at all -
+     * just the MIME type - so it isn't affected by URL-parsing edge cases
+     * (query strings, WARC header-value angle-bracket wrapping, etc.).
+     *
+     * @param in       the stream to identify; not closed by this method - the
+     *                 caller retains ownership and is responsible for closing it
+     * @param mimeType a MIME type (e.g. from an HTTP Content-Type header), with
+     *                 or without trailing parameters (e.g. both "text/html" and
+     *                 "text/html; charset=UTF-8" work) - may be null/blank, in
+     *                 which case the full common-format set is checked
+     * @return array of 0 to 10 DetectionResults, index 0 = top candidate -
+     *         empty if nothing in the checked set matched
+     */
+    public DetectionResult[] detectCommonMimeTypes(InputStream in, String mimeType) throws Exception {
+        if (in.markSupported()) {
+            try {
+                in.reset();
+            } catch (IOException e) {
+                System.out.println("  (reset() failed on the supplied stream, reading from current position: " + e + ")");
+            }
+        }
+        FileRegion region = readBoundedRegion(in);
+        if (region.length == 0) return new DetectionResult[0];
+
+        String normalized = normalizeMimeType(mimeType);
+        List<InternalSignatureDef> candidates = (normalized != null) ? commonMimeTypeSignatures.get(normalized) : null;
+        if (candidates == null) candidates = allCommonSignatures;
+
+        // Automatically use the larger JPEG-specific distance for JPEG and
+        // known variants - see JPEG_ANCHOR_SEARCH_DISTANCE's javadoc. Every
+        // other mimetype still uses the fast default (MAX_ANCHOR_SEARCH_DISTANCE).
+        long searchDistance = (normalized != null && JPEG_MIME_TYPES.contains(normalized))
+                ? JPEG_ANCHOR_SEARCH_DISTANCE : MAX_ANCHOR_SEARCH_DISTANCE;
+
+        List<Integer> matchedSignatureIds = new ArrayList<>();
+        for (InternalSignatureDef sig : candidates) {
+            if (matchSignature(region, sig, searchDistance)) {
+                matchedSignatureIds.add(sig.id);
+            }
+        }
+        if (matchedSignatureIds.isEmpty()) return new DetectionResult[0];
+
+        return buildResults(matchedSignatureIds);
+    }
+
+    /** Strips trailing parameters (e.g. "; charset=UTF-8") from a MIME type
+     *  and lowercases/trims it, matching how COMMON_MIME_TYPES entries are
+     *  declared. Returns null for a null/blank input. */
+    private static String normalizeMimeType(String mimeType) {
+        if (mimeType == null) return null;
+        String trimmed = mimeType.trim();
+        if (trimmed.isEmpty()) return null;
+        int semi = trimmed.indexOf(';');
+        if (semi >= 0) trimmed = trimmed.substring(0, semi).trim();
+        return trimmed.toLowerCase();
     }
 
     // ------------------------------------------------------------------

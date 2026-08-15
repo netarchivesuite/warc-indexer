@@ -39471,6 +39471,21 @@
                 </SubSequence>
             </ByteSequence>
         </InternalSignature>
+        <InternalSignature ID="9761" Specificity="Specific">
+            <ByteSequence Reference="BOFoffset">
+                <SubSequence MinFragLength="0" Position="1"
+                    SubSeqMaxOffset="8" SubSeqMinOffset="8">
+                    <Sequence>01000200</Sequence>
+                    <DefaultShift>5</DefaultShift>
+                    <Shift Byte="00">1</Shift>
+                    <Shift Byte="01">4</Shift>
+                    <Shift Byte="02">2</Shift>
+                    <RightFragment MaxOffset="22" MinOffset="22" Position="1">4C50</RightFragment>
+                    <RightFragment MaxOffset="36" MinOffset="36" Position="2">0000</RightFragment>
+                </SubSequence>
+            </ByteSequence>
+        </InternalSignature>
+
         <InternalSignature ID="1763" Specificity="Specific">
             <ByteSequence Reference="BOFoffset">
                 <SubSequence MinFragLength="0" Position="1"
@@ -65056,6 +65071,11 @@
             <InternalSignatureID>1762</InternalSignatureID>
             <Extension>eot</Extension>
         </FileFormat>
+        <FileFormat ID="9201" MIMEType="application/vnd.ms-fontobject"
+            Name="Embedded OpenType (EOT) File Format" PUID="fmt/DRAFT-EOT-1.2" Version="0x00010002">
+            <InternalSignatureID>9761</InternalSignatureID>
+            <Extension>eot</Extension>
+        </FileFormat> 
         <FileFormat ID="2203" Name="Bruker PDZ" PUID="fmt/1385">
             <InternalSignatureID>1763</InternalSignatureID>
             <Extension>pdz</Extension>
