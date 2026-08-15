@@ -67,32 +67,25 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
     private boolean passUriToFormatTools = false;
 
     public DroidDetectorAnalyser() {
-        // Attempt to set up Droid:
         String signatureFile="DROID_SignatureFile_V124.xml";
         try {
 
-            //Read from resources
+            //Read from resources in jar file
             try (InputStream in = getClass().getClassLoader().getResourceAsStream(signatureFile)) {
                 droidLight = new DroidSignatureVerifier(in);
                 log.info("Droid-light initialized. #signatures loaded="+droidLight.getSignatureCount() +" from signature file:"+signatureFile);                          
-            }                       
-            
+            }                               
         } catch (Exception e) {
             log.error("Exception during DroidDetector setup.", e);   
             droidLight=null;
         }
-    
         
-        Instrument.createSortedStat("WARCPayloadAnalyzers.analyze#droid",
-                Instrument.SORT.avgtime, 5);
+        Instrument.createSortedStat("WARCPayloadAnalyzers.analyze#droid", Instrument.SORT.avgtime, 5);
     }
 
     public void configure(Config conf) {
         this.runDroid = conf.getBoolean("warc.index.id.droid.enabled");
-        this.passUriToFormatTools = conf
-                .getBoolean("warc.index.id.useResourceURI");
- 
-               
+        this.passUriToFormatTools = conf .getBoolean("warc.index.id.useResourceURI");
     }
 
     @Override
@@ -127,54 +120,40 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
                 log.debug("Bytes seen RIGHT BEFORE dd2.detect(): " + hex1);
 */
                 
-                // Pass the URL in so DROID can fall back on that:
+                // This is not used by droid anymore. But will can be used by tika
                 Metadata metadata = new Metadata();
                 if (passUriToFormatTools) {
                     UsableURI uuri = UsableURIFactory.getInstance(Normalisation.fixURLErrors(Normalisation.sanitiseWARCHeaderValue(header.getUrl())));
-                    // Droid seems unhappy about spaces in filenames, so hack to
-                    // avoid:
+                    // Droid seems unhappy about spaces in filenames, so hack to avoid:
                     String cleanUrl = uuri.getName().replace(" ", "+");
                     metadata.set(TikaCoreProperties.RESOURCE_NAME_KEY, cleanUrl);
                 }
-                // Run Droid:
-                            
+                           
                 String httpHeaderMimeType= httpHeader.getHeader("Content-Type", "");
-                
-                long dd2Start=System.currentTimeMillis();
-           
+                           
                 //Since http content-type is generally reliable, just testing against signatures for that mimetype will
-                //often match and save performance instead of scanning all.
+                //often match and save performance instead of scanning all. If no match all signatures are scanned.
+                //css,javascript, robots.txt are not detected. They are all just text types and not in the signature file.
+                
                 DetectionResult[] detect = new DetectionResult[0];
                 DetectionResult droidLightDetection= null;
                 
                 if (droidLight.getSignatureCountForMimeType( httpHeaderMimeType) > 0) {
-                    detect = droidLight.detectCommonMimeTypes(tikainput,  httpHeaderMimeType);
-                    System.out.println("mimetyp scan hits:"+detect.length);
+                    detect = droidLight.detectCommonMimeTypes(tikainput,  httpHeaderMimeType);                    
                 }
 
-                if (detect.length == 0) { //Do full scan if mimetype scan found nothing or mimetype was not in the common list.
-                    System.out.println("full scan for:"+httpHeaderMimeType);
+                if (detect.length == 0) { //Do full scan if mimetype scan found nothing or mimetype was not in the common list.                    
                     detect = droidLight.detect(tikainput);
                 }
                 
                 if (detect.length >0) {
                     droidLightDetection=detect[0];                    
                 }                                      
-     
-                System.out.println("url:"+header.getUrl());
-                System.out.println("minetype http header:"+httpHeaderMimeType);                
-                System.out.println("dd2 time:"+(System.currentTimeMillis()-dd2Start));                
-                              
+                                                  
                 String version= null;
                 if (droidLightDetection != null) { 
                    solr.setField(SolrFields.CONTENT_TYPE_DROID,  droidLightDetection.getPrimaryMimeTypeWithVersion());
                    version=droidLightDetection.getVersion();
-                }
-                else {
-                    System.out.println(header);
-                    System.out.println("NODETECT! for mimetype:"+httpHeaderMimeType); //TODO REMOVE!
-                    log.debug("No detection for " + header.getUrl() + " - first bytes: ");            
-                    log.debug( InputStreamUtils.peekFirst10K(tikainput));              
                 }
 
                 if (version != null) {                   
@@ -188,13 +167,9 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
             } catch (Exception i) {
                 // Note that DROID complains about some URLs with an
                 // IllegalArgumentException.
-                log.error(i + ": " + i.getMessage() + ";dd; " + source + " @"
-                        + header.getOffset(), i);
+                log.error(i + ": " + i.getMessage() + ";dd; " + source + " @"+ header.getOffset(), i);
             }
-            Instrument.timeRel("WARCPayloadAnalyzers.analyze#total",
-                    "WARCPayloadAnalyzers.analyze#droid", droidStart);
-
+            Instrument.timeRel("WARCPayloadAnalyzers.analyze#total",  "WARCPayloadAnalyzers.analyze#droid", droidStart);
         }
     }
-
 }
