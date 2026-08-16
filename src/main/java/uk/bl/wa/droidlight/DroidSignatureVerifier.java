@@ -896,7 +896,7 @@ public class DroidSignatureVerifier {
      * where actual verification is only a few ms, that's a proportionally
      * significant, entirely avoidable cost during a bulk run.
      */
-    static boolean VERBOSE = true;
+    static boolean VERBOSE = false;
 
     /**
      * Matches the FIXED SubSequence of a ByteSequence - the one directly anchored to
