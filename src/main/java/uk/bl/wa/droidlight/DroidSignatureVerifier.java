@@ -1,4 +1,5 @@
 package uk.bl.wa.droidlight;
+
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
@@ -872,7 +873,7 @@ public class DroidSignatureVerifier {
      * safety cap for the same reason. This value is a pragmatic, undocumented choice
      * (not taken from DROID's real default) - large enough to comfortably cover the
      * ID3v2-tag case that motivated this rewrite (real tags seen so far: ~2.5KB and
-     * ~259KB), small enough to keep a full 2,018-signature scan of a large file
+     * ~259KB), small enough to keep a full signature scan of a large file
      * from effectively hanging on every non-matching signature.
      */
     static int MAX_ANCHOR_SEARCH_DISTANCE = 3000;
@@ -896,7 +897,7 @@ public class DroidSignatureVerifier {
      * where actual verification is only a few ms, that's a proportionally
      * significant, entirely avoidable cost during a bulk run.
      */
-    static boolean VERBOSE = false;
+    static boolean VERBOSE = true;
 
     /**
      * Matches the FIXED SubSequence of a ByteSequence - the one directly anchored to
@@ -1494,7 +1495,10 @@ public class DroidSignatureVerifier {
 
     // ------------------------------------------------------------------
     // DetectionResult is now its own standalone top-level class (see
-    // DetectionResult.java), shared with DroidSignatureAhoCorasickVerifier.
+    // DetectionResult.java), shared with DroidSignatureAhoCorasickVerifier -
+    // a separate, faster (single-pass Aho-Corasick anchor scan) verifier not
+    // currently wired into warc-indexer, kept for possible future use on very
+    // large files specifically, where its speed advantage matters most.
     // ------------------------------------------------------------------
 
     private final List<InternalSignatureDef> signatures;
@@ -1606,7 +1610,9 @@ public class DroidSignatureVerifier {
 
     /**
      * @return the number of DROID signatures loaded from the signature file
-     *         (~2,258 for a typical current PRONOM release).
+     *         (2,260 for the current file: the stock V124 PRONOM release,
+     *         2,258, plus two local signature additions - EOT version 1.2,
+     *         and SVG without an XML declaration).
      */
     public int getSignatureCount() {
         return signatures.size();
@@ -1911,7 +1917,7 @@ public class DroidSignatureVerifier {
     private DetectionResult[] detectFromRegion(FileRegion region) throws Exception {
         // PERFORMANCE: an empty region can never match any DROID signature -
         // every signature's anchor needs at least some bytes to compare against
-        // - so skip the whole 2,258-signature loop entirely for one. This is a
+        // - so skip the whole 2,260-signature loop entirely for one. This is a
         // real, common case in practice: HTTP redirect (e.g. 302) WARC records
         // legitimately have no payload at all, and calling detect() on an
         // empty stream was previously paying the full iteration cost (a quick,
