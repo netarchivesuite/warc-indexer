@@ -14,9 +14,9 @@ import java.util.*;
  * WHY THIS EXISTS
  * -----------------
  * DroidSignatureVerifier - correct as it now is - still searches for each of its
- * ~2,258 signatures' anchors independently: one small window-scan per signature,
+ * 2,260 signatures' anchors independently: one small window-scan per signature,
  * even though MAX_ANCHOR_SEARCH_DISTANCE keeps each of those scans cheap. That's
- * 2,258 separate scans of (mostly) the same bytes. This class instead compiles
+ * 2,260 separate scans of (mostly) the same bytes. This class instead compiles
  * every signature's FIXED (reference-point-anchored) literal anchor into ONE
  * combined Aho-Corasick automaton and finds ALL of their occurrences across the
  * WHOLE target file in a SINGLE pass - O(file_length), independent of how many
@@ -25,7 +25,8 @@ import java.util.*;
  * positions, reusing DroidSignatureVerifier's own matchChainedSubSequence,
  * verifyRightFragmentChain, verifyLeftFragmentChain, and applyPriorityResolution
  * directly (all package-private static members of DroidSignatureVerifier, reused
- * here rather than duplicated, since both classes share the same default package).
+ * here rather than duplicated, since both classes live in the same package,
+ * uk.bl.wa.droidlight).
  *
  * A NICE SIDE EFFECT: MAX_ANCHOR_SEARCH_DISTANCE BECOMES UNNECESSARY
  * ----------------------------------------------------------------------
