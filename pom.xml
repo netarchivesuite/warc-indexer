@@ -188,6 +188,14 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- tika-bom pins lucene-core to 8.11.4 (its own bundled Lucene 8 line).
+                 Override back to the 9.11.1 that Solr 9.8.1 actually ships, so only
+                 one lucene-core version is ever resolved on the classpath. -->
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-core</artifactId>
+                <version>9.11.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -489,7 +497,7 @@
         <dependency>
             <groupId>org.opensearch.client</groupId>
             <artifactId>opensearch-rest-high-level-client</artifactId>
-            <version>2.19.2</version>
+            <version>2.17.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-logging</groupId>
