@@ -26,7 +26,7 @@ import java.util.List;
 public class DroidManualTest {
 
     public static void main(String[] args) throws Exception {
-        String signatureFile = "/home/teg/workspace/warc-indexer/src/main/resources/DROID_SignatureFile_V124.xml";
+        String signatureFile = "DROID_SignatureFile_V124.xml";
         String scan_folder = "/home/teg/Downloads/";
 
         File sigFile = new File(signatureFile);
@@ -52,8 +52,10 @@ public class DroidManualTest {
         long start=System.currentTimeMillis();
         System.out.println("Found " + files.size() + " file(s) in " + folder);
 
-          //Switch which one to use.
-          DroidSignatureVerifier verifier = new DroidSignatureVerifier(sigFile);
+        DroidSignatureVerifier verifier=null;
+        try (InputStream in =  DroidManualTest.class.getClassLoader().getResourceAsStream(signatureFile)) {
+            verifier = new DroidSignatureVerifier(in);
+        }          
         //DroidSignatureAhoCorasickVerifier verifier= new DroidSignatureAhoCorasickVerifier(sigFile);
         
         System.out.println("\n===== Scanning " + files.size() + " file(s) =====\n");
