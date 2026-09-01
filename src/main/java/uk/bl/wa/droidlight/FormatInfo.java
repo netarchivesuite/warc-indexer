@@ -1,20 +1,6 @@
 package uk.bl.wa.droidlight;
 
-/**
- * FormatInfo - one candidate file format identified by FallbackFormatDetector:
- * PUID, human-readable name, MIME type, and version - straight from the
- * signature file's FileFormat entry, same fields DetectionResult carries for
- * a real binary-signature match (mimeType/version may be empty - not every
- * tentative FileFormat entry declares them, though a real check found 280 of
- * 560 tentative formats DO have a genuine Version attribute - this isn't rare
- * edge-case data).
- *
- * A standalone top-level class (same pattern as DetectionResult, used by
- * DroidSignatureVerifier/DroidSignatureAhoCorasickVerifier/
- * DroidSignatureVerifierHeuristic) rather than nested inside
- * FallbackFormatDetector, since it's a plain data-holder type that doesn't
- * need to live inside the class that produces it.
- */
+
 public final class FormatInfo {
     public final String puid;
     public final String name;

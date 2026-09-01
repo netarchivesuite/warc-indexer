@@ -459,7 +459,12 @@ public class InputStreamUtils {
      * will produce garbled/unreadable output - expected and fine here, since
      * this is specifically for debugging "detection found nothing" cases,
      * which in practice are very often text-based formats.
+     * 
+     * 
+     * @param in InputStream that must implement markSupported() method.
+     * @returns the first 10K characters as UTF-8 from the input stream
      */
+        
     public static String peekFirst10K(InputStream in) throws IOException {
         if (in == null) return "(null stream)";
         if (!in.markSupported()) return "(stream doesn't support mark/reset - cannot safely peek)";
@@ -495,6 +500,10 @@ public class InputStreamUtils {
      * read() naturally stops at EOF (returning -1) regardless of maxBytes,
      * so a short payload just returns fewer bytes than requested rather than
      * blocking or reading into unrelated data.
+     * 
+     * @param in InputStream that must implement markSupported() method.
+     * @param maxBytes. Maximum number of bytes to return
+     * @returns The first values hex. 
      */
     public static String peekFirstBytesAsHex(InputStream in, int maxBytes) throws IOException {
         if (in == null) return "(null stream)";
