@@ -85,7 +85,7 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
 
     public void configure(Config conf) {
         this.runDroid = conf.getBoolean("warc.index.id.droid.enabled");
-        this.passUriToFormatTools = conf .getBoolean("warc.index.id.useResourceURI");
+        this.passUriToFormatTools = conf.getBoolean("warc.index.id.useResourceURI");
     }
 
     @Override
@@ -109,17 +109,7 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
                 if( InputStreamUtils.isEmpty(tikainput)){
                     return; //skip early if empty stream
                 }
-                
-                /*           
-                byte[] peek1 = new byte[8];
-                tikainput.mark(8);
-                int n1 = tikainput.read(peek1);
-                tikainput.reset();
-                StringBuilder hex1 = new StringBuilder();
-                for (int i = 0; i < n1; i++) hex1.append(String.format("%02X ", peek1[i]));
-                log.debug("Bytes seen RIGHT BEFORE dd2.detect(): " + hex1);
-*/
-                
+                             
                 // This is not used by droid anymore. But will can be used by tika
                 Metadata metadata = new Metadata();
                 if (passUriToFormatTools) {

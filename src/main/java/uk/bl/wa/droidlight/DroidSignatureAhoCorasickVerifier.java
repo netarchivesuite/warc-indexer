@@ -58,27 +58,6 @@ import java.util.*;
  * not worth the added complexity of compiling a second, chained-context automaton
  * - but it is a known asymmetry, not an oversight.
  *
- * MEASURED RESULT - UPDATE: THE EARLIER LARGE-FILE SLOWDOWN IS NOW FIXED
- * ---------------------------------------------------------------------------
- * An earlier version of this class read the ENTIRE file/stream into memory and
- * ran the Aho-Corasick scan over all of it - correct, but this both caused an
- * OutOfMemoryError on multi-GB files (Java arrays are int-indexed, capped
- * around 2GB) AND made this class measurably SLOWER than DroidSignatureVerifier
- * on large files (a real MP3/MP4 comparison showed ~2-3x slower), since the
- * O(file_length) full-file automaton pass became the dominant cost once files
- * got large.
- *
- * Both problems are fixed by the same change: scanForAnchors now runs only over
- * the bounded head+tail windows of a DroidSignatureVerifier.FileRegion (see its
- * javadoc, and readBoundedRegion()) instead of the whole file. This is not a
- * compromise - it is provably lossless for this class's own fragment-
- * verification stage, since that stage already only has byte access within
- * those same bounded windows (anything outside them can never be verified
- * anyway, so scanning for anchors there was always wasted work). See
- * scanForAnchors's javadoc for the full reasoning, including why this involves
- * no risk of a match being split across a scan boundary (each window is
- * scanned as one uninterrupted automaton pass).
- *
  * Net effect: this class should now be fast and memory-bounded regardless of
  * file size, converging with (and, for the anchor-finding stage specifically,
  * still ahead of) DroidSignatureVerifier's own bounded-window design - the
