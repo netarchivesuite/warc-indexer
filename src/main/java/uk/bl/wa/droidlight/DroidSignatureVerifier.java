@@ -681,21 +681,6 @@ public class DroidSignatureVerifier {
      *  performance note this class carries elsewhere for why that matters on a
      *  multi-GB file with a common/short anchor).
      *
-     *  BUG FIX: an earlier version of this method clamped the search to stop
-     *  at the end of whichever buffer `fromInclusive` fell within, and never
-     *  even attempted the other buffer - even when the two are directly
-     *  contiguous (no real gap at all) or when `toInclusive` genuinely extends
-     *  into the tail. This broke real, ordinary files: a real 39MB MP4 (not
-     *  "fast-start" optimized) had its "moov" box at offset ~39.07M, about 19MB
-     *  past the head/tail boundary when read via detect(InputStream) - fully
-     *  available in the tail buffer, but never reached, causing a real,
-     *  everyday MP4 to go completely undetected via the InputStream entry
-     *  point (while detect(File) worked fine, since a 39MB file is well under
-     *  LARGE_FILE_THRESHOLD_BYTES and gets read as one single, ungapped
-     *  buffer there). Fixed by searching the head sub-range first, then
-     *  continuing into the tail sub-range (only the portion of it that falls
-     *  within [fromInclusive, toInclusive]) if nothing was found in head.
-     *
      *  PERFORMANCE: uses real Boyer-Moore-Horspool search (see
      *  computeForwardShifts()'s javadoc) via the precomputed `shifts` table
      *  when one is available, instead of a naive byte-by-byte position scan -
