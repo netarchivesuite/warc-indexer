@@ -54,6 +54,7 @@ public class WARCPayloadAnalysers {
      * @param httpHeader
      * @param tikainput
      * @param solr
+     * @param content_length
      */
     public void analyse(String source, ArchiveRecordHeader header, HTTPHeader httpHeader, InputStream tikainput, SolrRecord solr, long content_length) {
         // Note: The repeated use of InputStreamUtils.maybeDecompress might cause multiple uncompressions.
@@ -103,9 +104,9 @@ public class WARCPayloadAnalysers {
      * @param solr
      * @param header
      * @param content_length
+     * @param revisit
      */
-    void processContentType(SolrRecord solr, ArchiveRecordHeader header,
-            long content_length, boolean revisit) {
+    void processContentType(SolrRecord solr, ArchiveRecordHeader header,long content_length, boolean revisit) {
         // Get the current content-type:
         String contentType = (String) solr
                 .getFieldValue(SolrFields.SOLR_CONTENT_TYPE);
