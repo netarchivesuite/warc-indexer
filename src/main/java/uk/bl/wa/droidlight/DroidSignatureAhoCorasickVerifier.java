@@ -28,25 +28,6 @@ import java.util.*;
  * here rather than duplicated, since both classes live in the same package,
  * uk.bl.wa.droidlight).
  *
- * A NICE SIDE EFFECT: MAX_ANCHOR_SEARCH_DISTANCE BECOMES UNNECESSARY
- * ----------------------------------------------------------------------
- * DroidSignatureVerifier needed MAX_ANCHOR_SEARCH_DISTANCE as a pragmatic safety
- * cap AND, less desirably, as a de-facto (imprecise) false-positive-reduction
- * lever - shrinking the window reduced some coincidental matches, but also risked
- * cutting off genuine matches that legitimately needed a wider search (see the
- * whole MP3/ID3v2-tag saga earlier). Here, because Aho-Corasick finds ALL real
- * anchor occurrences across the entire file cheaply regardless of distance, there
- * is no need to guess a window size for correctness purposes at all - the
- * offset-window check (which DroidSignatureVerifier already validates correctly,
- * after its own earlier bug fix) is what legitimately decides whether a candidate
- * is valid, not an arbitrary distance cutoff. The only remaining reason to cap
- * anything is the same reason DROID itself needs a maxBytesToScan-style safety
- * valve: a pathological signature with many chained wildcard-range fragments (see
- * signature 280, the original hang bug) could still be expensive if tried against
- * too many candidate anchor positions - see MAX_CANDIDATES_TO_TRY below, which
- * bounds candidate COUNT (the real cost driver) rather than search DISTANCE (an
- * indirect, imprecise proxy for it).
- *
  * WHAT IS NOT SPED UP BY THIS CLASS
  * -------------------------------------
  * Only the FIXED (first, reference-point-anchored) SubSequence of each

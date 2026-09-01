@@ -11,12 +11,8 @@ package uk.bl.wa.droidlight;
  *
  * Shared by both DroidSignatureVerifier and DroidSignatureAhoCorasickVerifier -
  * pulled out to its own top-level class since both classes need to construct
- * and return arrays of this type, and having one of them own it as a nested
- * class meant the other had to reach into it via a slightly awkward
- * "DroidSignatureVerifier.DetectionResult" qualifier for no real reason - the
- * two verifier classes are peers (same detect(File)/detect(InputStream)
- * contract), not one depending on the other's internals.
- *
+ * and return arrays of this type.
+ * 
  * Fields are public and final (so already directly readable), but explicit
  * getters are also provided below for callers that prefer/require accessor
  * methods over direct field access.
@@ -34,10 +30,7 @@ public final class DetectionResult {
      * declared ordering carries no consistent meaning - it's not always "most
      * specific first" or "most modern first" - so there is no reliable
      * GENERIC rule that predicts the right choice; this is deliberately a
-     * small, explicit, extensible table (same design as
-     * FallbackFormatDetector.MIME_TYPE_OVERRIDES, for the same reason), added
-     * to as real cases surface, rather than an algorithm pretending to solve
-     * something that genuinely needs domain knowledge per case.
+     * small, explicit, extensible table.
      *
      * "application/mp4, video/mp4" -> "video/mp4" (fmt/199 MPEG-4 Media File):
      * a real production case - a downstream consumer (real DROID/nanite's own
@@ -129,28 +122,6 @@ public final class DetectionResult {
      * e.g. for a PNG result whose toString() is
      * "fmt/11  Portable Network Graphics  [image/png; version=1.0]",
      * getMimeTypeWithVersion() returns "image/png; version=1.0" on its own.
-     *
-     * BUG FIX: previously only checked "mimeType == null", not
-     * "mimeType.isEmpty()" - a real case surfaced this: FallbackFormatDetector
-     * can produce a DetectionResult with mimeType set to an EMPTY STRING (not
-     * null - see its own FormatInfo-to-DetectionResult conversion) for a real
-     * PRONOM entry that has a Version but no MimeType attribute at all (e.g.
-     * x-fmt/45 "Microsoft Word Document Template", version="97-2003", no
-     * MimeType declared). The old guard let this through, producing a
-     * malformed "; version=97-2003" with no MIME type prefix at all.
-     *
-     * BUG FIX: a real PRONOM entry can declare MULTIPLE alternate MIME types as
-     * one comma-joined attribute value (e.g. fmt/101 "Extensible Markup
-     * Language" declares MIMEType="application/xml, text/xml" - the same
-     * pattern confirmed earlier for WebP/ICO). The old code appended
-     * "; version=X" once to the whole joined string, producing something like
-     * "application/xml, text/xml; version=1.0" - genuinely ambiguous about
-     * whether the version applies to just the last part or to both, and a
-     * caller naively splitting on the first comma would get "application/xml"
-     * with no version info at all. Fixed by applying the version suffix to
-     * EACH comma-separated part individually - "application/xml; version=1.0,
-     * text/xml; version=1.0" - unambiguous, and the first segment alone is
-     * already a complete, valid "mimetype; version=X" value on its own.
      */
     public String getMimeTypeWithVersion() {
         if (mimeType == null || mimeType.isEmpty()) return null;
