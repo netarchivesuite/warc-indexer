@@ -5,6 +5,7 @@ package uk.bl.wa.analyser.payload;
 
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
+import java.util.Iterator;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -38,7 +39,20 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
     private long sampleCount = 0;
 
     private boolean extractImageFeatures = false;
+    
+    /*Maybe extract to config3.xml
+    # Minimum image dimension (shortest side in pixels) for perceptual hash calculation.
+    # Images smaller than this in either dimension are skipped. Default: 150.
+    "minImageDimensionForHashing" : 150,
 
+    # Maximum pixel count (width * height) for perceptual hash calculation.
+    # Very large images allocate several GB of RAM during hashing and can cause
+    # OutOfMemoryError. Default: 8000000 (approx. 4000x2000 pixels).
+    "maxImagePixelsForHashing" : 8000000
+    */
+    private long maxImagePixelsForHashing = 8_000_000L;
+    private int minImageDimensionForHashing = 150;
+    
     /** Whether to calculate perceptual hashes (PDQ and pHash) for images */
     private boolean calculateHashes = false;
 
@@ -80,7 +94,7 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
     }
 
     @Override
-    public void analyse(String source, ArchiveRecordHeader header, HTTPHeader httpHeader,InputStream tikainput, SolrRecord solr) {
+    public void analyse(String source, ArchiveRecordHeader header, HTTPHeader httpHeader, InputStream tikainput, SolrRecord solr) {
         // Set up metadata object to pass to parsers:
         Metadata metadata = new Metadata();
         // Skip large images:
@@ -97,55 +111,51 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
 
             int width = 0;
             int height = 0;
-
-            // Try to load as BufferedImage first — one load covers both
-            // dimension extraction and perceptual hashing.
             BufferedImage bufferedImage = null;
-            try {
-                bufferedImage = ImageIO.read(tikainput);
-                if (bufferedImage != null) {
-                    width = bufferedImage.getWidth();
-                    height = bufferedImage.getHeight();
-                    solr.addField(SolrFields.IMAGE_HEIGHT, "" + height);
-                    solr.addField(SolrFields.IMAGE_WIDTH, "" + width);
-                    solr.addField(SolrFields.IMAGE_SIZE, "" + (height * width));
-                }
-            } catch (Exception e) {
-                // fall through to ImageReader fallback below
-            }
 
-            // Fallback: if BufferedImage failed (e.g. unsupported format such
-            // as ICO, SVG, or exotic legacy formats), use ImageReader which
-            // can extract dimensions without fully decoding the pixel data.
-            if (bufferedImage == null) {
-                ImageInputStream input = null;
-                ImageReader reader = null;
-                try {
-                    input = ImageIO.createImageInputStream(tikainput);
-                    reader = ImageIO.getImageReaders(input).next();
-                    reader.setInput(input);
+            // Peek at dimensions first using ImageReader — cheap, no full pixel decode.
+            // This avoids OutOfMemoryError when loading very large images (e.g. 23000x7000)
+            // into a BufferedImage before we know their size.
+            ImageInputStream imageInputStream = null;
+            ImageReader reader = null;
+            try {
+                imageInputStream = ImageIO.createImageInputStream(tikainput);
+                Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInputStream);
+                if (readers.hasNext()) {
+                    reader = readers.next();
+                    reader.setInput(imageInputStream);
                     width = reader.getWidth(0);
                     height = reader.getHeight(0);
                     solr.addField(SolrFields.IMAGE_HEIGHT, "" + height);
                     solr.addField(SolrFields.IMAGE_WIDTH, "" + width);
                     solr.addField(SolrFields.IMAGE_SIZE, "" + (height * width));
-                } catch (Exception e) {
-                    // known unsupported formats (ICO, SVG etc.) — suppress
-                } finally {
-                    if (reader != null) {
-                        reader.dispose();
+
+                    // Only fully decode into BufferedImage if within safe pixel limit.
+                    // Images above 8 megapixels can cause OutOfMemoryError when allocating
+                    // the three full-resolution double[][] arrays needed by pHash
+                    // (3 channels × width × height × 8 bytes per double).
+                    if (calculateHashes
+                            && Math.min(width, height) >= minImageDimensionForHashing
+                            && (long) width * height <=   maxImagePixelsForHashing ) {
+                        imageInputStream.seek(0);
+                        bufferedImage = reader.read(0);
                     }
+                }
+            } catch (Exception e) {
+               log.debug("Could not parse read image, error:"+e.getMessage());
+            } finally {
+                if (reader != null) reader.dispose();
+                if (imageInputStream != null) {
+                    try { imageInputStream.close(); } catch (Exception e) { /* suppress */ }
                 }
             }
 
-            // Perceptual hashing — only if enabled in config, BufferedImage
-            // loaded successfully, and image meets minimum dimension threshold.
-            if (calculateHashes && bufferedImage != null && Math.min(width, height) >= 150) {
+            // Perceptual hashing — only if BufferedImage was loaded successfully.
+            if (bufferedImage != null) {
                 addPerceptualHashes(bufferedImage, solr);
             }
         }
     }
-
     /**
      * Computes perceptual hashes (PDQ and pHash) for the given image and adds
      * them to the Solr record.

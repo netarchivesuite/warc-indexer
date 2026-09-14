@@ -17,6 +17,7 @@ Performance is broadly comparable to the previous implementation — some format
 - **Known limitation, not a regression**: formats with no binary signature in PRONOM (e.g. CSS, JavaScript, plain text) were never identifiable by DROID either, old or new — `content_type_droid` will not report these regardless of implementation.
 - **Local signature additions**: two signature entries have been added locally, beyond the stock V124 release — one for an EOT font version not covered by PRONOM, one for SVG files without an XML declaration.
 
+-  **Memory safety**: The reading image/height of an image without loading the whole image into memory. This will fix some out of memory errors.
 
 
 3.5.0
