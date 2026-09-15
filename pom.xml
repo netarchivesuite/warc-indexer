@@ -6,7 +6,7 @@
     <packaging>jar</packaging>
     <name>warc-indexer</name>
     <url>https://maven.apache.org</url>
-    <version>3.5.1</version>
+    <version>3.5.2-SNAPSNOT</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
