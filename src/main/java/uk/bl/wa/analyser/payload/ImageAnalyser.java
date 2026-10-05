@@ -136,8 +136,7 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
                     // (3 channels × width × height × 8 bytes per double).
                     if (calculateHashes
                             && Math.min(width, height) >= minImageDimensionForHashing
-                            && (long) width * height <=   maxImagePixelsForHashing ) {
-                        imageInputStream.seek(0);
+                            && (long) width * height <= maxImagePixelsForHashing) {
                         bufferedImage = reader.read(0);
                     }
                 }
@@ -167,7 +166,7 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
      * @param image  the decoded image, must not be null
      * @param solr   the Solr record to enrich with hash fields
      */
-    private void addPerceptualHashes(BufferedImage image, SolrRecord solr) {
+    private void addPerceptualHashes(BufferedImage image, SolrRecord solr) {    
         // PDQ — all 8 dihedral variants in one pipeline pass
         String[] dihedralHashes = PdqHasher.getAllDihedralHashes(image);
         solr.addField(SolrFields.IMAGE_PDQ_HASH,          dihedralHashes[0]);
