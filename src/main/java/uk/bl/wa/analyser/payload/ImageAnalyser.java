@@ -153,6 +153,9 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
             if (bufferedImage != null) {
                 addPerceptualHashes(bufferedImage, solr);
             }
+            else {
+                log.warn("Image could not be read:"+header.getUrl());
+            }
         }
     }
     /**
