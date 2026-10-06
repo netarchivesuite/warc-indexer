@@ -42,8 +42,8 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
     
     /*Maybe extract to config3.xml
     # Minimum image dimension (shortest side in pixels) for perceptual hash calculation.
-    # Images smaller than this in either dimension are skipped. Default: 150.
-    "minImageDimensionForHashing" : 150,
+    # Images smaller than this in either dimension are skipped. Default: 100.
+    "minImageDimensionForHashing" : 100,
 
     # Maximum pixel count (width * height) for perceptual hash calculation.
     # Very large images allocate several GB of RAM during hashing and can cause
@@ -51,7 +51,7 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
     "maxImagePixelsForHashing" : 8000000
     */
     private long maxImagePixelsForHashing = 8_000_000L;
-    private int minImageDimensionForHashing = 150;
+    private int minImageDimensionForHashing = 100;
     
     /** Whether to calculate perceptual hashes (PDQ and pHash) for images */
     private boolean calculateHashes = false;

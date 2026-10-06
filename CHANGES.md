@@ -1,6 +1,10 @@
 **NOTE** Generally, we only add terms to the Solr schema, so it should usually be compatible with previous versions (i.e. clients should be able to query across both without modification). However, there are been a small number of fixes which unfortunately required breaking changes you may need to be aware of or work-around. e.g. [hash becomes single-valued](https://github.com/ukwa/webarchive-discovery/issues/95) from 3.0.0 to 3.1.0
 
 
+3.5.2
+-----
+Minimum image height/width changed from 150 pixels to 100 pixels for PDQ-hash (image similarity). This can still produce good matches.
+Added support for image format WebP required for calculating PDQ Hashes (com.twelvemonkeys.imageio dependency)
 
 3.5.1
 -----
