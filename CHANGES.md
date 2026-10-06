@@ -4,7 +4,7 @@
 3.5.2
 -----
 Minimum default image height/width changed from 150 pixels to 100 pixels for PDQ-hash (image similarity). This can still produce good matches.
-Added support for image format WebP required for calculating PDQ Hashes (com.twelvemonkeys.imageio dependency)
+Added support for image format WebP required for calculating PDQ-Hash/pHash (com.twelvemonkeys.imageio dependency)
 
 3.5.1
 -----
