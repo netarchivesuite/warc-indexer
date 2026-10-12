@@ -193,6 +193,22 @@
 
     <dependencies>
         <!--Common modules start-->
+
+        <!-- Used directly by LinkExtractor, WARCIndexer, FirstBytesAnalyser and
+             AnnotationsFromAct (com.google.common.*). Previously arrived only
+             transitively via tika-langdetect-optimaize's own dependency on
+             com.optimaize.languagedetector:language-detector, which in turn
+             depended on Guava. Note that webarchive-commons below explicitly
+             *excludes* its own (older) bundled Guava, so something upstream
+             always had to supply it. Now that tika-langdetect-optimaize is
+             gone (replaced by tika-langdetect-opennlp), Guava must be
+             declared directly instead of relying on that accidental path. -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>33.7.2-jre</version>
+        </dependency>
+
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
@@ -278,9 +294,15 @@
             <artifactId>tika-parser-html-commons</artifactId>
         </dependency>
 
+        <!-- Language detection. Replaces carrotsearch:langid-java (archived/
+             unmaintained upstream, Nov 2023). Supports ~115-120 languages
+             versus optimaize's 71, with a model explicitly curated to drop
+             languages that were easily confused with others. See
+             LanguageAnalyser for the ISO 639-3 -> ISO 639-1 code mapping
+             kept for backwards compatibility with content_language. -->
         <dependency>
             <groupId>org.apache.tika</groupId>
-            <artifactId>tika-langdetect-optimaize</artifactId>
+            <artifactId>tika-langdetect-opennlp</artifactId>
         </dependency>
 
          <!-- Needs further testing if this dependency can be removed. Maybe it is used runtime-->
@@ -490,15 +512,8 @@
             </exclusions>
         </dependency>
 
-        <!-- Used for Language detection -->
-        <dependency>
-            <groupId>com.carrotsearch</groupId>
-            <artifactId>langid-java</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-
-
         <!--TESTING-->
+
         <!-- dependency needed for Solr integration test -->
         <dependency>
             <groupId>javax.servlet</groupId>
