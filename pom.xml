@@ -17,15 +17,16 @@
 
         <!-- Versions used in more than one place -->
         <tika.version>2.9.4</tika.version>
-        <solr.version>9.8.1</solr.version>
+        <solr.version>9.10.1</solr.version>
         <!-- Must match the PDFBox version Tika uses (tika 2.9.4 -> pdfbox 2.0.34) -->
         <pdfbox.version>2.0.34</pdfbox.version>
-        <!-- Must match the Jetty major version SolrJ is compiled against (Solr 9.x -> Jetty 10.0.x) -->
-        <jetty.version>10.0.22</jetty.version>
-        <zookeeper.version>3.9.2</zookeeper.version>
+        <!-- Jetty and ZooKeeper versions Solr 9.10 is built with -->
+        <jetty.version>10.0.26</jetty.version>
+        <zookeeper.version>3.9.4</zookeeper.version>
         <twelvemonkeys.version>3.13.1</twelvemonkeys.version>
-        <!-- Lucene version OpenSearch 2.19.2 is built against -->
-        <lucene.version>9.12.1</lucene.version>
+        <!-- Solr 9.10 is built with Lucene 9.12.3, OpenSearch 2.19.2 with 9.12.1 (same 9.12 line).
+             Solr 9.8.1 (Lucene 9.11.1) did not work with 9.12: Lucene99Codec moved out of lucene-core. -->
+        <lucene.version>9.12.3</lucene.version>
         <opensearch.version>2.19.2</opensearch.version>
         <jackson.version>2.19.0</jackson.version>
         <slf4j.version>2.0.17</slf4j.version>
@@ -79,6 +80,10 @@
                         <!-- Runtime-scoped dependencies (Tika parsers, ImageIO plugins, logging backend) are
                              loaded via ServiceLoader and can never be seen by bytecode analysis. -->
                         <ignoreNonCompile>true</ignoreNonCompile>
+                        <ignoredUnusedDeclaredDependencies>
+                            <!-- Needed on the compile classpath, see comment on the dependency -->
+                            <ignoredUnusedDeclaredDependency>org.slf4j:jcl-over-slf4j</ignoredUnusedDeclaredDependency>
+                        </ignoredUnusedDeclaredDependencies>
                     </configuration>
                 </plugin>
                 <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-source-plugin</artifactId><version>3.4.0</version></plugin>
@@ -326,7 +331,17 @@
                 <version>${twelvemonkeys.version}</version>
             </dependency>
 
-            <!-- Lucene came out as a mix of 8.11.4 (lucene-core), 9.11.1 (via solr-core) and 9.12.1 (via opensearch).
+            <!-- org.opensearch:opensearch brings jakarta.annotation-api 1.3.5 (old javax.annotation package),
+                 which beats the 2.1.1 (jakarta.annotation package) that Solr 9 / Jersey 3 need.
+                 3.5.2 shipped 2.1.1; without this pin embedded Solr fails with
+                 NoClassDefFoundError: jakarta/annotation/Priority. -->
+            <dependency>
+                <groupId>jakarta.annotation</groupId>
+                <artifactId>jakarta.annotation-api</artifactId>
+                <version>2.1.1</version>
+            </dependency>
+
+            <!-- Lucene came out as a mix of 8.11.4 (lucene-core, pinned by tika-bom), 9.x via solr-core and 9.12.1 (via opensearch).
                  The shipped jar needs Lucene for the OpenSearch client, so align everything to its version. -->
             <dependency>
                 <groupId>org.apache.lucene</groupId>
@@ -539,6 +554,13 @@
                     <groupId>org.apache.logging.log4j</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
+                <!-- xml-apis (via tika-parser-xml-module -> xercesImpl) duplicates the JDK's java.xml module
+                     (javax.xml.parsers/transform/stream/...). Eclipse refuses to compile with it on the
+                     classpath ("package javax.xml.transform is accessible from more than one module"). -->
+                <exclusion>
+                    <groupId>xml-apis</groupId>
+                    <artifactId>xml-apis</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
@@ -564,7 +586,10 @@
             <groupId>org.slf4j</groupId>
             <artifactId>jcl-over-slf4j</artifactId>
             <version>${slf4j.version}</version>
-            <scope>runtime</scope>
+            <!-- Compile scope on purpose: it provides the org.apache.commons.logging API (commons-logging
+                 itself is excluded everywhere), and httpclient / commons-httpclient classes we compile against
+                 reference org.apache.commons.logging.Log. javac tolerates the missing type, but Eclipse's compiler
+                 then produces broken class files (e.g. NoSuchMethodError on InputStreamUtils$HASH_STAGE.valueOf). -->
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
