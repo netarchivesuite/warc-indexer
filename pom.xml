@@ -71,7 +71,16 @@
                 <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-jar-plugin</artifactId><version>3.5.1</version></plugin>
                 <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-install-plugin</artifactId><version>3.2.0</version></plugin>
                 <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-deploy-plugin</artifactId><version>3.2.0</version></plugin>
-                <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.11.0</version></plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.11.0</version>
+                    <configuration>
+                        <!-- Runtime-scoped dependencies (Tika parsers, ImageIO plugins, logging backend) are
+                             loaded via ServiceLoader and can never be seen by bytecode analysis. -->
+                        <ignoreNonCompile>true</ignoreNonCompile>
+                    </configuration>
+                </plugin>
                 <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-source-plugin</artifactId><version>3.4.0</version></plugin>
             </plugins>
         </pluginManagement>
@@ -582,17 +591,6 @@
             <groupId>com.typesafe</groupId>
             <artifactId>config</artifactId>
             <version>1.4.3</version>
-        </dependency>
-
-        <dependency>
-            <groupId>xerces</groupId>
-            <artifactId>xercesImpl</artifactId>            
-          <exclusions>
-            <exclusion>
-              <groupId>xml-apis</groupId>
-              <artifactId>xml-apis</artifactId>
-            </exclusion>
-          </exclusions>
         </dependency>
 
         <dependency>
