@@ -5,12 +5,30 @@
     <artifactId>warc-indexer</artifactId>
     <packaging>jar</packaging>
     <name>warc-indexer</name>
-    <url>https://maven.apache.org</url>
+    <url>https://github.com/netarchivesuite/warc-indexer</url>
     <version>3.5.2</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- Must stay on Java 11 bytecode/API -->
+        <maven.compiler.release>11</maven.compiler.release>
         <ram>1024</ram>
+
+        <!-- Versions used in more than one place -->
+        <tika.version>2.9.4</tika.version>
+        <solr.version>9.8.1</solr.version>
+        <!-- Must match the PDFBox version Tika uses (tika 2.9.4 -> pdfbox 2.0.34) -->
+        <pdfbox.version>2.0.34</pdfbox.version>
+        <!-- Must match the Jetty major version SolrJ is compiled against (Solr 9.x -> Jetty 10.0.x) -->
+        <jetty.version>10.0.22</jetty.version>
+        <zookeeper.version>3.9.2</zookeeper.version>
+        <twelvemonkeys.version>3.13.1</twelvemonkeys.version>
+        <!-- Lucene version OpenSearch 2.19.2 is built against -->
+        <lucene.version>9.12.1</lucene.version>
+        <jackson.version>2.19.0</jackson.version>
+        <slf4j.version>2.0.17</slf4j.version>
+        <log4j.version>2.25.1</log4j.version>
     </properties>
     <organization>
         <name>The warc-indexer project contributor.</name>
@@ -27,14 +45,13 @@
     </licenses>
 
 
-    <!-- 
-     <scm>
-        <connection>scm:git:${project.scm.url}</connection>
-        <developerConnection>scm:git:${project.scm.url}</developerConnection>
-        <url>git@github.com:idhub-io/idhub-api.git</url>
-        <tag>3.3.1</tag>
+    <!-- Needed by maven-release-plugin (the old block pointed at an unrelated repo) -->
+    <scm>
+        <connection>scm:git:https://github.com/netarchivesuite/warc-indexer.git</connection>
+        <developerConnection>scm:git:git@github.com:netarchivesuite/warc-indexer.git</developerConnection>
+        <url>https://github.com/netarchivesuite/warc-indexer</url>
+        <tag>HEAD</tag>
     </scm>
-    -->
 
 
     <build>
@@ -46,11 +63,42 @@
                 <directory>src/main/solr</directory>
             </testResource>
         </testResources>
+        <!-- Pin the default lifecycle plugins so builds are reproducible across Maven versions -->
+        <pluginManagement>
+            <plugins>
+                <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId><version>3.5.0</version></plugin>
+                <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-jar-plugin</artifactId><version>3.5.1</version></plugin>
+                <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-install-plugin</artifactId><version>3.2.0</version></plugin>
+                <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-deploy-plugin</artifactId><version>3.2.0</version></plugin>
+                <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.11.0</version></plugin>
+                <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-source-plugin</artifactId><version>3.4.0</version></plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
 
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.6.3</version>
+                <executions>
+                    <execution>
+                        <id>enforce</id>
+                        <goals><goal>enforce</goal></goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion><version>3.6.3</version></requireMavenVersion>
+                                <requireJavaVersion><version>11</version></requireJavaVersion>
+                                <banDuplicatePomDependencyVersions/>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>3.1.1</version>
+                <version>3.3.1</version>
                 <configuration>
                     <scmCommentPrefix>[ci skip]</scmCommentPrefix>
                     <tagNameFormat>@{project.version}</tagNameFormat>
@@ -61,9 +109,11 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>3.6.2</version>
                 <configuration>
                     <finalName>${project.build.finalName}-jar-with-dependencies</finalName>
+                    <!-- Stop shade from writing dependency-reduced-pom.xml into the project root -->
+                    <createDependencyReducedPom>false</createDependencyReducedPom>
                     <filters>
                         <filter>
                             <artifact>*:*</artifact>
@@ -72,6 +122,9 @@
                                 <exclude>META-INF/*.SF</exclude>
                                 <exclude>META-INF/*.DSA</exclude>
                                 <exclude>META-INF/*.RSA</exclude>
+                                <exclude>META-INF/*.EC</exclude>
+                                <exclude>module-info.class</exclude>
+                                <exclude>META-INF/versions/*/module-info.class</exclude>
                                 <exclude>log4j*</exclude>
                             </excludes>
                         </filter>
@@ -88,6 +141,8 @@
                             <file>src/main/resources/log4j2.xml</file>
                         </transformer>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer"/>
                     </transformers>
                 </configuration>
                 <executions>
@@ -104,17 +159,15 @@
             <plugin>
                <groupId>org.apache.maven.plugins</groupId>
                <artifactId>maven-compiler-plugin</artifactId>
-               <version>3.14.0</version>
-               <configuration>
-               <release>11</release>
-               </configuration>
+               <version>3.16.0</version>
+               <!-- release=11 comes from the maven.compiler.release property -->
            </plugin>
 
             <plugin>
                 <!-- Separates the unit tests from the integration tests. -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.3</version>
+                <version>3.6.0</version>
                 <configuration>
                     <!-- Skip the default running of this plug-in (or everything
                        is run twice...see below) -->
@@ -171,7 +224,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.11.2</version>
+                <version>3.12.0</version>
                 <configuration>
                     <additionalOptions>-Xdoclint:none</additionalOptions>
                 </configuration>
@@ -181,12 +234,189 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- SolrJ 9.x (Http2SolrClient / CloudHttp2SolrClient, used for the zookeeper mode)
+                 is compiled against Jetty 10. The 3.5.2 jar contains Jetty 9.4.57 instead,
+                 which lacks e.g. org.eclipse.jetty.io.ClientConnector.
+                 Must be imported BEFORE tika-bom: with imported BOMs the first one wins,
+                 and tika-bom 2.9.4 pins Jetty 9.4.57. -->
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-bom</artifactId>
+                <version>${jetty.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <dependency>
                 <groupId>org.apache.tika</groupId>
                 <artifactId>tika-bom</artifactId>
-                <version>2.9.4</version>
+                <version>${tika.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <!-- The 3.5.2 jar mixes zookeeper 3.8.4 with zookeeper-jute 3.9.2 -->
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>${zookeeper.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper-jute</artifactId>
+                <version>${zookeeper.version}</version>
+            </dependency>
+
+            <!-- The 3.5.2 jar mixes pdfbox/xmpbox 2.0.32 (from preflight) with fontbox/pdfbox-tools 2.0.34 (from Tika) -->
+            <dependency>
+                <groupId>org.apache.pdfbox</groupId>
+                <artifactId>pdfbox</artifactId>
+                <version>${pdfbox.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.pdfbox</groupId>
+                <artifactId>fontbox</artifactId>
+                <version>${pdfbox.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.pdfbox</groupId>
+                <artifactId>xmpbox</artifactId>
+                <version>${pdfbox.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.pdfbox</groupId>
+                <artifactId>pdfbox-tools</artifactId>
+                <version>${pdfbox.version}</version>
+            </dependency>
+
+            <!-- The 3.5.2 jar has twelvemonkeys common-io 3.12.0 next to 3.13.1 of the rest -->
+            <dependency>
+                <groupId>com.twelvemonkeys.common</groupId>
+                <artifactId>common-io</artifactId>
+                <version>${twelvemonkeys.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.twelvemonkeys.common</groupId>
+                <artifactId>common-lang</artifactId>
+                <version>${twelvemonkeys.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.twelvemonkeys.common</groupId>
+                <artifactId>common-image</artifactId>
+                <version>${twelvemonkeys.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.twelvemonkeys.imageio</groupId>
+                <artifactId>imageio-core</artifactId>
+                <version>${twelvemonkeys.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.twelvemonkeys.imageio</groupId>
+                <artifactId>imageio-metadata</artifactId>
+                <version>${twelvemonkeys.version}</version>
+            </dependency>
+
+            <!-- Lucene came out as a mix of 8.11.4 (lucene-core), 9.11.1 (via solr-core) and 9.12.1 (via opensearch).
+                 The shipped jar needs Lucene for the OpenSearch client, so align everything to its version. -->
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-core</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-analysis-common</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-backward-codecs</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-codecs</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-queries</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-queryparser</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-grouping</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-highlighter</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-join</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-misc</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-memory</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-sandbox</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-spatial3d</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-spatial-extras</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-suggest</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-classification</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-expressions</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-analysis-kuromoji</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-analysis-nori</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-analysis-phonetic</artifactId>
+                <version>${lucene.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -217,10 +447,20 @@
             <version>1.9.0</version>
         </dependency>
 
+        <!-- Replaces javax.activation-api 1.2.0: jakarta.activation 1.2.2 (already pulled in via jaxb-runtime)
+             contains the same javax.activation classes plus the implementation, so both ended up in the jar. -->
         <dependency>
-            <groupId>javax.activation</groupId>
-            <artifactId>javax.activation-api</artifactId>
-            <version>1.2.0</version>
+            <groupId>com.sun.activation</groupId>
+            <artifactId>jakarta.activation</artifactId>
+            <version>1.2.2</version>
+        </dependency>
+
+        <!-- Used directly (ExternalServiceSolrFieldEnricher). Previously came in as 20131018 via webarchive-commons
+             (CVE-2022-45688, CVE-2023-5072). -->
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20240303</version>
         </dependency>
         <!--Common modules end-->
 
@@ -234,7 +474,7 @@
         <dependency>
            <groupId>com.twelvemonkeys.imageio</groupId>
            <artifactId>imageio-webp</artifactId>
-           <version>3.13.1</version>
+           <version>${twelvemonkeys.version}</version>
        </dependency>
         
         
@@ -245,6 +485,14 @@
          <artifactId>jwat-common</artifactId>
          <version>1.2.1</version>
          <scope>compile</scope>
+         <exclusions>
+            <!-- Old BouncyCastle 1.65 (known CVEs). The same org.bouncycastle classes come from
+                 bcprov-jdk18on 1.80 via Tika, so 3080 classes overlapped in the shaded jar. -->
+            <exclusion>
+               <groupId>org.bouncycastle</groupId>
+               <artifactId>bcprov-jdk15to18</artifactId>
+            </exclusion>
+         </exclusions>
       </dependency>
 
         <dependency>
@@ -283,38 +531,32 @@
             <artifactId>tika-langdetect-optimaize</artifactId>
         </dependency>
 
-         <!-- Needs further testing if this dependency can be removed. Maybe it is used runtime-->
-        <dependency>
-            <groupId>com.itextpdf</groupId>
-            <artifactId>itextpdf</artifactId>
-            <version>5.5.13.4</version>
-        </dependency>
-
-        <!-- Logging-->
+        <!-- Logging. Tika 2.9 and SolrJ 9 are built against SLF4J 2.x, so use the 2.x API and
+             the matching log4j binding (log4j-slf4j2-impl instead of log4j-slf4j-impl). -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.36</version>
+            <version>${slf4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>jcl-over-slf4j</artifactId>
-            <version>1.7.36</version>
+            <version>${slf4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j-impl</artifactId>
-            <version>2.25.1</version>
+            <artifactId>log4j-slf4j2-impl</artifactId>
+            <version>${log4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
-            <version>2.25.1</version>
+            <version>${log4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
-            <version>2.25.1</version>
+            <version>${log4j.version}</version>
         </dependency>
 
         <!--logging end-->
@@ -391,7 +633,7 @@
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>preflight</artifactId>
-            <version>2.0.32</version>
+            <version>${pdfbox.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-logging</groupId>
@@ -403,7 +645,16 @@
         <dependency>
             <groupId>org.apache.solr</groupId>
             <artifactId>solr-solrj</artifactId>
-            <version>9.8.1</version>
+            <version>${solr.version}</version>
+            <exclusions>
+                <!-- Native OpenSSL (BoringSSL) binaries for 5 platforms, pulled in via the ZooKeeper client.
+                     Only used if ZooKeeper is explicitly configured for SSL with the OpenSSL provider;
+                     otherwise netty uses the JDK's own SSL, which works on Windows, Linux and macOS. -->
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-tcnative-boringssl-static</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -459,19 +710,19 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>2.19.0</version>
+            <version>${jackson.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>2.19.0</version>
+            <version>${jackson.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.19.0</version>
+            <version>${jackson.version}</version>
         </dependency>
 
         <dependency>
@@ -499,18 +750,10 @@
 
 
         <!--TESTING-->
-        <!-- dependency needed for Solr integration test -->
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>servlet-api</artifactId>
-            <version>2.5</version>
-            <scope>test</scope>
-        </dependency>
-
         <dependency>
             <groupId>org.apache.solr</groupId>
             <artifactId>solr-core</artifactId>
-            <version>9.8.1</version>
+            <version>${solr.version}</version>
             <scope>test</scope>
         </dependency>
 
