@@ -10,7 +10,7 @@ WARC Indexer
 
 [![DOI](https://zenodo.org/badge/1013711589.svg)](https://doi.org/10.5281/zenodo.18183415)
 
-Latest release 3.5.0: https://github.com/netarchivesuite/warc-indexer/releases/tag/3.5.0
+Latest release 3.5.2: https://github.com/netarchivesuite/warc-indexer/releases/tag/3.5.2
 
 This code runs Apache Tika on WARC and ARC records and extracts suitable metadata for indexing.
 
@@ -22,7 +22,7 @@ Using this command, it can also builds a suitable command-line tool for generati
 
 Which runs like this:
 
-    $ java -jar target/warc-indexer-1.1.1-SNAPSHOT-jar-with-dependencies.jar \
+    $ java -jar target/warc-indexer-3.5.2-SNAPSHOT-jar-with-dependencies.jar \
     -s http://localhost:8080/ \
     src/test/resources/wikipedia-mona-lisa/flashfrozen-jwat-recompressed.warc.gz
 
@@ -30,11 +30,11 @@ TBA configuration HOW TO.
 
 To print the default configuration:
 
-    $ java -cp target/warc-indexer-1.1.1-SNAPSHOT-jar-with-dependencies.jar uk.bl.wa.util.ConfigPrinter
+    $ java -cp target/warc-indexer-3.5.2-SNAPSHOT-jar-with-dependencies.jar uk.bl.wa.util.ConfigPrinter
 
 To override the default with a new configuration:
 
-    $ java -jar target/warc-indexer-1.1.1-SNAPSHOT-jar-with-dependencies.jar -Dconfig.file=new.conf \
+    $ java -jar target/warc-indexer-3.5.2-SNAPSHOT-jar-with-dependencies.jar -Dconfig.file=new.conf \
     -s http://localhost:8080/ \
     src/test/resources/wikipedia-mona-lisa/flashfrozen-jwat-recompressed.warc.gz
 
