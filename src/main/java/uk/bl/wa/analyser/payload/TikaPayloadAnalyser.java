@@ -7,9 +7,21 @@ import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.time.DateTimeException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.commons.io.input.CloseShieldInputStream;
 import org.apache.commons.io.input.BoundedInputStream;
@@ -31,10 +43,6 @@ import org.apache.tika.sax.boilerpipe.BoilerpipeContentHandler;
 import org.apache.tika.sax.BodyContentHandler;
 import org.apache.tika.sax.WriteOutContentHandler;
 import org.archive.io.ArchiveRecordHeader;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.xml.sax.ContentHandler;
 
 import com.typesafe.config.Config;
@@ -360,24 +368,21 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
                 date = metadata.get( TikaCoreProperties.MODIFIED );
             }
             if( date != null ) {
-                DateTimeFormatter df = ISODateTimeFormat.dateTimeParser();
-                DateTime edate = null;
+                Instant edate = null;
                 try {
-                    edate = df.parseDateTime(date);
-                } catch( IllegalArgumentException e ) {
+                    edate = parseLenientIsoDate(date);
+                } catch( DateTimeException e ) {
                     log.error( "Could not parse date: "+ date + " from URL " + url + " in " + source);
                 }
                 if( edate == null ) {
                     Date javadate = Times.extractDate(date);
                     if( javadate != null )
-                        edate = new org.joda.time.DateTime( javadate );
+                        edate = javadate.toInstant();
                 }
                 if( edate != null ) {
-                    solr.addField( SolrFields.LAST_MODIFIED_YEAR, ""+edate.getYear() );
-                    DateTimeFormatter iso_df = ISODateTimeFormat.dateTimeNoMillis().withZone(DateTimeZone.UTC);
-                    // solr.getSolrDocument().setField(SolrFields.LAST_MODIFIED,
-                    // edate);
-                    solr.setField(SolrFields.LAST_MODIFIED, iso_df.print(edate));
+                    // Year in the JVM default time zone (same as the previous Joda-Time code)
+                    solr.addField( SolrFields.LAST_MODIFIED_YEAR, ""+edate.atZone(ZoneId.systemDefault()).getYear() );
+                    solr.setField(SolrFields.LAST_MODIFIED, ISO_DATE_TIME_NO_MILLIS_UTC.format(edate));
                 }
             }
 
@@ -596,6 +601,56 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
         }
     }
     
+    /** ISO 8601 without milliseconds, in UTC, e.g. 2020-05-01T10:00:00Z (same output as Joda's dateTimeNoMillis). */
+    static final DateTimeFormatter ISO_DATE_TIME_NO_MILLIS_UTC =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.ROOT).withZone(ZoneOffset.UTC);
+
+    /**
+     * Lenient ISO 8601 parser replacing Joda's ISODateTimeFormat.dateTimeParser():
+     * yyyy[-MM[-dd]][T[HH[:mm[:ss[.fraction]]]][offset]] where offset is Z, +hh, +hhmm or +hh:mm.
+     * Not supported (Joda accepted them, but they are very rare in metadata): week dates (2020-W20-1),
+     * ordinal dates (2020-138) and time-only values (T10:11). These fall back to Times.extractDate().
+     */
+    private static final DateTimeFormatter LENIENT_ISO_PARSER = new DateTimeFormatterBuilder()
+            .appendValue(ChronoField.YEAR, 4)
+            .optionalStart().appendLiteral('-').appendValue(ChronoField.MONTH_OF_YEAR, 2)
+                .optionalStart().appendLiteral('-').appendValue(ChronoField.DAY_OF_MONTH, 2).optionalEnd()
+            .optionalEnd()
+            .optionalStart().appendLiteral('T')
+                .optionalStart().appendValue(ChronoField.HOUR_OF_DAY, 2)
+                    .optionalStart().appendLiteral(':').appendValue(ChronoField.MINUTE_OF_HOUR, 2)
+                        .optionalStart().appendLiteral(':').appendValue(ChronoField.SECOND_OF_MINUTE, 2)
+                            .optionalStart().appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true).optionalEnd()
+                            .optionalStart().appendLiteral(',').appendFraction(ChronoField.NANO_OF_SECOND, 1, 9, false).optionalEnd()
+                        .optionalEnd()
+                    .optionalEnd()
+                .optionalEnd()
+                .optionalStart().appendOffset("+HH:MM", "Z").optionalEnd()
+                .optionalStart().appendOffset("+HHMM", "Z").optionalEnd()
+                .optionalStart().appendOffset("+HH", "Z").optionalEnd()
+            .optionalEnd()
+            .parseDefaulting(ChronoField.MONTH_OF_YEAR, 1)
+            .parseDefaulting(ChronoField.DAY_OF_MONTH, 1)
+            .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+            .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+            .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
+            .toFormatter(Locale.ROOT)
+            .withResolverStyle(ResolverStyle.STRICT);
+
+    /**
+     * Parses an ISO 8601 date/time as found in document metadata. Values without an offset are
+     * interpreted in the JVM default time zone (same behaviour as the previous Joda-Time code).
+     *
+     * @throws DateTimeException if the value is not a supported ISO 8601 date/time
+     */
+    static Instant parseLenientIsoDate(String date) {
+        TemporalAccessor parsed = LENIENT_ISO_PARSER.parse(date.trim());
+        if (parsed.isSupported(ChronoField.OFFSET_SECONDS)) {
+            return OffsetDateTime.from(parsed).toInstant();
+        }
+        return LocalDateTime.from(parsed).atZone(ZoneId.systemDefault()).toInstant();
+    }
+
     /**
      * Support storing the error message for analysis:
      * 
