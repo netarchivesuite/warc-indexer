@@ -5,6 +5,7 @@ package uk.bl.wa.solr;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.util.*;
 import java.util.function.UnaryOperator;
@@ -91,7 +92,15 @@ public class SolrRecord implements Serializable {
     }
 
     public String toXml() {
-        return ClientUtils.toXML( doc );
+        // ClientUtils.toXML(SolrInputDocument) was removed in SolrJ 9.10; it was just writeXML into a String.
+        StringWriter writer = new StringWriter();
+        try {
+            ClientUtils.writeXML( doc, writer );
+        } catch (IOException e) {
+            // Cannot happen with a StringWriter
+            throw new IllegalStateException("Unable to serialise Solr document to XML", e);
+        }
+        return writer.toString();
     }
 
     /**

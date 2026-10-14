@@ -3,7 +3,6 @@ package uk.bl.wa.indexer;
 import org.apache.commons.httpclient.Header;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +20,7 @@ public class HTTPHeader extends ArrayList<Header> {
     public HTTPHeader() {
     }
 
-    public HTTPHeader(@NotNull Collection<? extends Header> c) {
+    public HTTPHeader(Collection<? extends Header> c) {
         super(c);
     }
 
