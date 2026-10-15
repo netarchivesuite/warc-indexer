@@ -4,9 +4,13 @@
 package uk.bl.wa.analyser.text;
 
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.tika.langdetect.opennlp.OpenNLPDetector;
 import org.apache.tika.language.detect.LanguageDetector;
@@ -26,10 +30,10 @@ import uk.bl.wa.util.Instrument;
  * <p>
  * This replaces the previously used carrotsearch {@code langid-java}
  * library, which was archived/unmaintained upstream. The Tika/OpenNLP
- * detector supports substantially more languages (roughly 115-120 versus
- * ~97) and its bundled model was explicitly curated to drop languages
- * that were easily confused with others, which should help accuracy on
- * the major languages too.
+ * detector supports substantially more languages (103, per Tika's own
+ * documentation, versus ~97) and its bundled model was explicitly curated
+ * to drop languages that were easily confused with others, which should
+ * help accuracy on the major languages too.
  * <p>
  * One behavioural difference: the OpenNLP model reports languages using
  * ISO 639-3 (three-letter) codes (e.g. "eng", "dan"), occasionally with a
@@ -50,6 +54,136 @@ public class LanguageAnalyser extends AbstractTextAnalyser
 
     // The language detection model
     private LanguageDetector detector;
+
+    /**
+     * MIME types whose "text" is code/markup/data rather than natural-language
+     * prose, so running the language detector on it is at best wasted work and
+     * at worst actively misleading: short, structurally-repetitive fragments
+     * (property names, keywords, punctuation-heavy syntax) regularly get
+     * mis-detected as a specific natural language -- e.g. English keywords
+     * sprinkled through CSS/JS/JSON are enough to tip the n-gram-based model.
+     * <p>
+     * Deliberately not including HTML/XHTML (the main text is genuinely
+     * natural-language prose, with markup already stripped out by Tika before
+     * it reaches {@link #analyse(String, SolrRecord)}) or things like
+     * subtitle/caption formats (plain prose despite being "structured").
+     * <p>
+     * Checked against {@link SolrFields#SOLR_CONTENT_TYPE}, which by the time
+     * this runs has already been normalised (Tika/DROID/HTTP-header signals
+     * merged, parameters such as charset stripped) by
+     * {@link uk.bl.wa.analyser.WARCPayloadAnalysers}.
+     */
+    private static final Set<String> SKIP_MIME_TYPES = new HashSet<>(Arrays.asList(
+            // Stylesheets
+            "text/css",
+            // JavaScript / ECMAScript -- covers the historical and current labels
+            // browsers and servers both still use
+            "application/javascript",
+            "text/javascript",
+            "application/x-javascript",
+            "application/ecmascript",
+            "text/ecmascript",
+            // JSON, and JSON-flavoured formats
+            "application/json",
+            "text/json",
+            "application/ld+json",
+            "application/manifest+json",
+            "application/feed+json",
+            // Syndication feeds -- mostly XML markup/dates/URLs; any prose is a
+            // minority fragment of a much larger structured document
+            "application/rss+xml",
+            "application/atom+xml",
+            // Generic/structured XML and other markup-as-data formats
+            "application/xml",
+            "text/xml",
+            "application/xml-dtd",
+            "image/svg+xml",
+            // Tabular/columnar data
+            "text/csv",
+            "text/tab-separated-values",
+            // Config/serialisation formats
+            "application/x-yaml",
+            "text/yaml",
+            "text/x-yaml",
+            "text/calendar",
+            "text/vcard",
+            "text/x-vcard",
+            // Source code (Tika/DROID sometimes identify these distinctly rather
+            // than falling back to text/plain)
+            "application/x-sh",
+            "text/x-shellscript",
+            "application/sql",
+            "text/x-sql",
+            "application/x-httpd-php",
+            "text/x-php",
+            "text/x-python",
+            "text/x-java-source",
+            "text/x-csrc",
+            "text/x-c++src"));
+
+    /**
+     * Belt-and-braces fallback for when {@link #SKIP_MIME_TYPES} can't help:
+     * localisation/resource/config file formats that are very commonly served
+     * with a generic, unhelpful MIME type (typically "text/plain" or even no
+     * Content-Type at all), so there's nothing in the MIME type to filter on.
+     * These matched against {@link SolrFields#CONTENT_TYPE_EXT}, the lower-case
+     * file extension (no leading dot) already parsed from the URL earlier in
+     * the pipeline by {@code WARCIndexer.parseExtension()}.
+     * <p>
+     * Example that prompted this: a Mozilla Fluent {@code .ftl} localisation
+     * file (pdf.js UI strings translated into Acholi) served as
+     * {@code text/plain}, where the English boilerplate/comments/keys
+     * ({@code pdfjs-...}, "Variables:", etc.) outnumber the actual translated
+     * text enough to get the whole file detected as English.
+     * <p>
+     * A handful of these (css/js/json/...) duplicate {@link #SKIP_MIME_TYPES}
+     * on purpose, as a fallback for when the server mislabels them too.
+     */
+    private static final Set<String> SKIP_EXTENSIONS = new HashSet<>(Arrays.asList(
+            // Localisation/resource bundles
+            "ftl",        // Mozilla Fluent
+            "properties", // Java resource bundles
+            "po", "pot", "mo", // gettext
+            "strings",    // Apple/iOS localisation
+            "resx",       // .NET resources
+            "xlf", "xliff", // XML Localisation Interchange File Format
+            "lang",       // generic CMS/plugin localisation files
+            // Config/serialisation formats
+            "ini", "cfg", "toml", "env", "lock",
+            "yml", "yaml",
+            // Fallback for mislabelled code/markup/data files (see SKIP_MIME_TYPES)
+            "css", "js", "json", "xml", "svg", "csv", "tsv", "sql", "sh"));
+
+    /**
+     * Skip records whose content isn't natural-language prose, via either the
+     * MIME type ({@link #SKIP_MIME_TYPES}) or, as a fallback, the file
+     * extension ({@link #SKIP_EXTENSIONS}). An unknown ({@code null}) MIME
+     * type alone is not skipped, matching the previous behaviour of always
+     * attempting detection.
+     */
+    @Override
+    public boolean shouldProcess(String mimeType, SolrRecord solr) {
+        if (mimeType != null) {
+            // Defensive: SOLR_CONTENT_TYPE is normally already bare, but strip
+            // any leftover parameters (e.g. ";charset=utf-8") before comparing.
+            String base = mimeType.replaceAll(";.*$", "").trim().toLowerCase(Locale.ROOT);
+            if (SKIP_MIME_TYPES.contains(base)) {
+                log.debug("Skipping language detection for mimetype: " + mimeType + ", url: " + solr.getUrl());
+                return false;
+            }
+        }
+
+        if (solr.getField(SolrFields.CONTENT_TYPE_EXT) != null) {
+            String ext = (String) solr.getField(SolrFields.CONTENT_TYPE_EXT).getFirstValue();
+            if (ext != null && SKIP_EXTENSIONS.contains(ext.toLowerCase(Locale.ROOT))) {
+                log.debug("Skipping language detection for extension: " + ext + " (mimetype: " + mimeType
+                        + "), url: " + solr.getUrl());
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     /**
      * @param conf
