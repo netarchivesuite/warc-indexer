@@ -606,10 +606,30 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.ROOT).withZone(ZoneOffset.UTC);
 
     /**
-     * Lenient ISO 8601 parser replacing Joda's ISODateTimeFormat.dateTimeParser():
-     * yyyy[-MM[-dd]][T[HH[:mm[:ss[.fraction]]]][offset]] where offset is Z, +hh, +hhmm or +hh:mm.
+     * Lenient ISO 8601 parser for dates found in document metadata (Tika created/modified dates).
+     * It accepts the same forms as Joda-Time's ISODateTimeFormat.dateTimeParser(), which it replaced in 3.5.3.
+     * <p>
+     * Pattern: yyyy[-MM[-dd]][T[HH[:mm[:ss[fraction]]]][offset]]
+     * <p>
+     * Each optional section below exists because real metadata uses that form:
+     * <pre>
+     *   2020                          year only                       -> 2020-01-01T00:00
+     *   2020-05                       year and month                  -> 2020-05-01T00:00
+     *   2020-05-17                    date only                       -> 00:00 that day
+     *   2020-05-17T10                 hour only
+     *   2020-05-17T10:11              hour and minute
+     *   2020-05-17T10:11:12           full time
+     *   2020-05-17T10:11:12.345       fraction with '.'  (0-9 digits)
+     *   2020-05-17T10:11:12,345       fraction with ','  (ISO 8601 allows both)
+     *   ...Z / +02:00 / +0200 / +02   the four offset styles seen in the wild (each needs its own pattern)
+     * </pre>
+     * Missing fields default to the first month/day and to midnight. Values without an offset are interpreted
+     * in the JVM default time zone (same as the old Joda-Time code), see {@link #parseLenientIsoDate(String)}.
+     * Parsing is STRICT, so invalid dates such as 2020-02-30 are rejected instead of being adjusted.
+     * <p>
      * Not supported (Joda accepted them, but they are very rare in metadata): week dates (2020-W20-1),
      * ordinal dates (2020-138) and time-only values (T10:11). These fall back to Times.extractDate().
+     * The accepted and rejected forms are covered by TikaPayloadAnalyserTest.
      */
     private static final DateTimeFormatter LENIENT_ISO_PARSER = new DateTimeFormatterBuilder()
             .appendValue(ChronoField.YEAR, 4)
