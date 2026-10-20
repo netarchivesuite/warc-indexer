@@ -17,7 +17,6 @@ import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveReaderFactory;
 import org.archive.io.ArchiveRecord;
 import org.archive.util.SurtPrefixSet;
-import org.jetbrains.annotations.NotNull;
 import uk.bl.wa.analyser.payload.ARCNameAnalyser;
 import uk.bl.wa.annotation.Annotations;
 import uk.bl.wa.annotation.Annotator;
@@ -103,7 +102,6 @@ public class ValidateWARCNameMatchers {
                            + " seconds.");
     }
 
-    @NotNull
     static List<ARCNameAnalyser.Rule> getRules(String configFile) {
         Config conf = getConfig(configFile);
         if (!conf.hasPath("warc.index.extract.content.arcname.rules")) {

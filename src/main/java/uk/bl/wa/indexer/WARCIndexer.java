@@ -25,9 +25,6 @@ import org.archive.util.SurtPrefixSet;
 import org.archive.wayback.accesscontrol.staticmap.StaticMapExclusionFilterFactory;
 import org.archive.wayback.core.CaptureSearchResult;
 import org.archive.wayback.resourceindex.filters.ExclusionFilter;
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.bl.wa.analyser.TextAnalysers;
@@ -773,6 +770,11 @@ public class WARCIndexer {
         return date;
     }
 
+    /** ISO 8601 without milliseconds, in UTC, e.g. 2000-09-20T00:05:45Z. */
+    private static final java.time.format.DateTimeFormatter ISO_DATE_TIME_NO_MILLIS_UTC =
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.ROOT)
+                    .withZone(java.time.ZoneOffset.UTC);
+
     /**
      * Returns a formatted String representing the crawled date.
      * 
@@ -780,10 +782,7 @@ public class WARCIndexer {
      * @return
      */
     protected static String parseCrawlDate( String waybackDate ) {
-        DateTimeFormatter iso_df = ISODateTimeFormat.dateTimeNoMillis()
-                .withZone(DateTimeZone.UTC);
-        return iso_df.print(new org.joda.time.DateTime(
-                getWaybackDate(waybackDate)));
+        return ISO_DATE_TIME_NO_MILLIS_UTC.format(getWaybackDate(waybackDate).toInstant());
     }
 
     /**

@@ -23,6 +23,7 @@ import dk.kb.images.hash.PhashHasher;
 import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
+import uk.bl.wa.util.Instrument;
 
 /**
  * @author anj
@@ -112,6 +113,9 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
             int width = 0;
             int height = 0;
             BufferedImage bufferedImage = null;
+            // Set when the image genuinely could not be parsed (no reader for the format, or decode error).
+            // Images skipped on purpose (too small/large for hashing, hashing disabled) leave this null.
+            String parseFailure = null;
 
             // Peek at dimensions first using ImageReader — cheap, no full pixel decode.
             // This avoids OutOfMemoryError when loading very large images (e.g. 23000x7000)
@@ -120,8 +124,8 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
             ImageReader reader = null;
             try {
                 imageInputStream = ImageIO.createImageInputStream(tikainput);
-                Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInputStream);
-                if (readers.hasNext()) {
+                Iterator<ImageReader> readers = imageInputStream == null ? null : ImageIO.getImageReaders(imageInputStream);
+                if (readers != null && readers.hasNext()) {
                     reader = readers.next();
                     reader.setInput(imageInputStream);
                     width = reader.getWidth(0);
@@ -138,10 +142,18 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
                             && Math.min(width, height) >= minImageDimensionForHashing
                             && (long) width * height <= maxImagePixelsForHashing) {
                         bufferedImage = reader.read(0);
+                        if (bufferedImage == null) {
+                            parseFailure = "decoder returned no image";
+                        }
+                    } else {
+                        log.debug("Image not hashed (size " + width + "x" + height + ", calculateHashes="
+                                + calculateHashes + "): " + header.getUrl());
                     }
+                } else {
+                    parseFailure = "no ImageIO reader for format";
                 }
             } catch (Exception e) {
-               log.debug("Could not parse read image, error:"+e.getMessage());
+                parseFailure = e.getClass().getSimpleName() + ": " + e.getMessage();
             } finally {
                 if (reader != null) reader.dispose();
                 if (imageInputStream != null) {
@@ -153,8 +165,9 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
             if (bufferedImage != null) {
                 addPerceptualHashes(bufferedImage, solr);
             }
-            else {
-                log.warn("Image could not be read:"+header.getUrl());
+            else if (parseFailure != null) {
+                log.warn("Image could not be parsed (" + parseFailure + "), content type="
+                        + solr.getFieldValue(SolrFields.SOLR_CONTENT_TYPE) + ": " + header.getUrl());
             }
         }
     }
@@ -171,6 +184,7 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
      */
     private void addPerceptualHashes(BufferedImage image, SolrRecord solr) {    
         // PDQ — all 8 dihedral variants in one pipeline pass
+        final long pdqStart = System.nanoTime();
         String[] dihedralHashes = PdqHasher.getAllDihedralHashes(image);
         solr.addField(SolrFields.IMAGE_PDQ_HASH,          dihedralHashes[0]);
         solr.addField(SolrFields.IMAGE_PDQ_ROTATE90_HASH,  dihedralHashes[1]);
@@ -189,15 +203,18 @@ public class ImageAnalyser extends AbstractPayloadAnalyser {
                 solr.addField("image_pdq_" + dihedralName + "_band_" + b, bands[b]);
             }
         }
+        Instrument.timeRel("WARCPayloadAnalyzers.analyze#total", "ImageAnalyzer.analyze#pdqhash", pdqStart);
 
         
         // pHash and its 2 bands
+        final long pHashStart = System.nanoTime();
         String pHash = PhashHasher.getHash(image);
         solr.addField(SolrFields.IMAGE_P_HASH, pHash);
         String[] pHashBands = PhashHasher.splitIntoBands(pHash);
         for (int i = 0; i < pHashBands.length; i++) {
             solr.addField("image_p_hash_band_" + i, pHashBands[i]);
         }
+        Instrument.timeRel("WARCPayloadAnalyzers.analyze#total", "ImageAnalyzer.analyze#phash", pHashStart);
         
     }
     public long getSampleCount() {
