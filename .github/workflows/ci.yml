@@ -1,3 +1,5 @@
+# Run tests when a pull request is created.
+
 name: CI
 
 on:
