@@ -403,11 +403,9 @@
     "wayback_date" : "20140325121318"
   },
   {
-    "content" : "ode ERE",
     "content_ffb" : "89504e47",
-    "content_language" : "en",
     "content_length" : "4325",
-    "content_text_length" : "7",
+    "content_text_length" : "0",
     "content_type" : "image/png",
     "content_type_droid" : "image/png; version=1.0",
     "content_type_ext" : "png",
@@ -434,8 +432,6 @@
     "source_file" : "BL-20140325121225068-00000-32090~opera~8443.warc.gz",
     "source_file_offset" : "76392",
     "source_file_path" : "target/test-classes/gov.uk-revisit-warcs/BL-20140325121225068-00000-32090~opera~8443.warc.gz",
-    "ssdeep_hash_bs_3" : "l",
-    "ssdeep_hash_bs_6" : "l",
     "status_code" : "200",
     "type" : "Image",
     "url" : "http://data.gov.uk/sites/default/files/styles/tile_text_small/public/odugUK%20Logo.001.png?itok=iE21gEma",
