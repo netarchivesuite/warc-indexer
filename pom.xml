@@ -470,22 +470,6 @@
 
     <dependencies>
         <!--Common modules start-->
-
-        <!-- Used directly by LinkExtractor, WARCIndexer, FirstBytesAnalyser and
-             AnnotationsFromAct (com.google.common.*). Previously arrived only
-             transitively via tika-langdetect-optimaize's own dependency on
-             com.optimaize.languagedetector:language-detector, which in turn
-             depended on Guava. Note that webarchive-commons below explicitly
-             *excludes* its own (older) bundled Guava, so something upstream
-             always had to supply it. Now that tika-langdetect-optimaize is
-             gone (replaced by tika-langdetect-opennlp), Guava must be
-             declared directly instead of relying on that accidental path. -->
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>33.7.2-jre</version>
-        </dependency>
-
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
@@ -616,7 +600,7 @@
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-langdetect-opennlp</artifactId>
-            <scope>runtime</scope>
+            <!-- Compile scope: LanguageAnalyser uses OpenNLPDetector directly -->
         </dependency>
 
         <!-- Logging. Tika 2.9 and SolrJ 9 are built against SLF4J 2.x, so use the 2.x API and
@@ -824,15 +808,17 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        
-        <!-- dependency needed for Solr integration test -->
+
         <!-- Libraries our own code uses directly. They used to arrive only transitively
              (found by mvn dependency:analyze), so they are declared explicitly here.
              Versions are the ones already resolved before. -->
+        <!-- Guava: used by LinkExtractor (InternetDomainName), WARCIndexer, FirstBytesAnalyser and
+             AnnotationsFromAct. webarchive-commons excludes its own Guava, and tika-langdetect-optimaize
+             (which used to bring it in) is gone, so it must be declared here. -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>33.4.8-jre</version>
+            <version>33.7.2-jre</version>
         </dependency>
         <dependency>
             <groupId>de.l3s.boilerpipe</groupId>
