@@ -5,3 +5,5 @@
 /.project
 /dependency-reduced-pom.xml
 /bin/
+/.idea/
+.DS_Store

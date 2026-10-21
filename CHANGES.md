@@ -2,6 +2,7 @@
 
 
 
+
 3.5.3
 -----
 
@@ -16,6 +17,46 @@ CarrotSearch's `langid-java` is archived/unmaintained upstream. Language detecti
   - `content_type_ext` (file extension) skipped as a fallback, for files served with a generic mimetype such as `text/plain`: `ftl`, `properties`, `po`, `pot`, `mo`, `strings`, `resx`, `xlf`, `xliff`, `lang`, `ini`, `cfg`, `toml`, `env`, `lock`, `yml`, `yaml`, `css`, `js`, `json`, `xml`, `svg`, `csv`, `tsv`, `sql`, `sh`.
 - The `langdetectprofiles` config option -- used under `langid-java` to select and order which languages were tested, e.g. for performance or to limit detection to languages relevant to a collection -- has been removed from the shipped `.conf` files. Tika's OpenNLP detector always scores against its full, fixed language model and has no supported way to restrict or prioritise a subset, so this setting is no longer read anywhere and has no effect if present in a custom config.
 
+### Dependency cleanup and upgrades
+
+This release has no new features. It cleans up and upgrades the Maven dependencies and fixes several version
+conflicts in the shaded jar (`jar-with-dependencies`). Some of these conflicts could cause runtime failures.
+
+The code is compiled for Java 11, so Java 11 is the minimum, not a requirement. It runs on Java 11, 17 and 21.
+Java 25 is not supported, because Solr 9 does not run on it.
+
+- **Solr, Lucene and OpenSearch aligned.**
+  - The jar contained a mix of Lucene versions: `lucene-core` 8.11.4 (pinned by `tika-bom`), modules at 9.11.1
+    (Solr 9.8.1's version) and modules at 9.12.1 (OpenSearch 2.19.2's version).
+  - Solr is upgraded from 9.8.1 to **9.10.1**, and all Lucene modules are pinned to **9.12.3** through a single
+    `lucene.version` property. Solr 9.10 and OpenSearch 2.19.2 both build on the Lucene 9.12 line, so one Lucene
+    version now serves both. Staying on Solr 9.8.1 was not possible: it does not run on Lucene 9.12 (the
+    `Lucene99Codec` class moved).
+  - SolrJ 9.x needs Jetty 10, but `tika-bom` pinned Jetty 9.4.57. This would most likely have broken the
+    ZooKeeper/SolrCloud mode (`--solr-zookeepers`). Jetty is now 10.0.26 through `jetty-bom`, imported before
+    `tika-bom`. ZooKeeper is 3.9.4, matching Solr 9.10.
+  - `jakarta.annotation-api` is pinned to 2.1.1. OpenSearch brought in 1.3.5, which breaks Solr 9's Jersey 3.
+  - `ClientUtils.toXML` was removed in SolrJ 9.10. `SolrRecord.toXml()` now produces the same XML through
+    `ClientUtils.writeXML`.
+  - The OpenSearch client stays at 2.19.2. No downgrade was needed.
+- **The embedded Solr unit test works again.** `WARCIndexerEmbeddedSolrTest` had been disabled (`@Ignore`) for
+  years. It now starts an embedded Solr 9.10 with the `solr9` configuration and passes in both Maven and the IDE.
+- **Other version conflicts fixed:** PDFBox (2.0.32 / 2.0.34 mixed), BouncyCastle (an old 1.65 duplicating 1.80),
+  ZooKeeper, TwelveMonkeys, and duplicate `javax.activation` and `javax.xml` classes (`xml-apis`).
+- **Logging:** SLF4J upgraded to 2.0.17 with `log4j-slf4j2-impl`, the versions Tika and SolrJ are built against.
+- **Dependencies removed:**
+  - `itextpdf`: unused, and AGPL-licensed, which conflicts with this project's GPLv2.
+  - `servlet-api`.
+  - Our own direct `xercesImpl` dependency, a workaround from 2014. Tika still brings in Xerces itself.
+  - The native `netty-tcnative-boringssl-static` binaries for all platforms.
+- **Code no longer uses Joda-Time or commons-lang 2.x:** it now uses `java.time` and `commons-lang3`. Libraries
+  the code uses directly are now declared in the pom instead of arriving through other dependencies.
+- **Build:** Maven plugins upgraded, the enforcer plugin added (Java 11+, Maven 3.6.3+), and
+  `dependency-reduced-pom.xml` is no longer written to the project root.
+- **Images:** ICO images (favicons) can now be read, so they get width and height. The warning
+  "Image could not be read" is now only logged when an image really cannot be parsed, not for images skipped
+  because they are too small or too large. Timing for the PDQ and pHash calculations has been added to the
+  performance statistics.
 
 3.5.2
 -----

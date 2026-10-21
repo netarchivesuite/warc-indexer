@@ -10,10 +10,12 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactoryConfigurationError;
@@ -33,7 +35,6 @@ import org.archive.util.SurtPrefixSet;
 import org.archive.wayback.exception.ResourceNotAvailableException;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import uk.bl.wa.annotation.Annotations;
@@ -46,9 +47,9 @@ import uk.bl.wa.util.Normalisation;
 /**
  * @author Andrew Jackson <Andrew.Jackson@bl.uk>
  *
- * FIXME - Ignoring these tests as they have problems running under older versions.
+ * Starts an in-process (embedded) Solr 9 core using the solr9/ configuration from src/main/solr.
  */
-@Ignore
+
 public class WARCIndexerEmbeddedSolrTest {
 
     private String testWarc = getClass().getClassLoader().getResource(
@@ -65,19 +66,22 @@ public class WARCIndexerEmbeddedSolrTest {
      */
     @Before
     public void setUp() throws Exception {
-        
-        // Note that the following property could be set through JVM level arguments too
-        String solrXmlPath = getClass().getClassLoader()
-                .getResource("solr7/solr.xml").getPath();
-        Path solrHome = new File(solrXmlPath).getParentFile().toPath();
-        System.setProperty("solr.solr.home", solrHome.toString());
-        System.setProperty("solr.data.dir", "target/solr-test-home");
+        // src/main/solr is a test resource folder, so solr9/ ends up in target/test-classes/solr9
+        Path solrHome = Paths.get(getClass().getClassLoader().getResource("solr9/solr.xml").toURI()).getParent();
+
+        // Solr 9 only allows data directories below the Solr home, so use the default
+        // (discovery/data inside solrHome) instead of an external solr.data.dir.
+        System.clearProperty("solr.data.dir");
         System.setProperty("solr.lock.type", "native");
-        System.out.println("Loading container...");
+
+        System.out.println("Loading container from " + solrHome);
+        CoreContainer container = new CoreContainer(solrHome, new Properties());
+        container.load();
         System.out.println("Setting up embedded server...");
-        server = new EmbeddedSolrServer(solrHome, "discovery");
+        server = new EmbeddedSolrServer(container, "discovery");
         // Remove any items from previous executions:
         server.deleteByQuery("*:*");
+        server.commit();
     }
 
     /**
@@ -85,7 +89,10 @@ public class WARCIndexerEmbeddedSolrTest {
      */
     @After
     public void tearDown() throws Exception {
-        server.close();
+        // server is null if setUp() failed; avoid hiding the real error with an NPE
+        if (server != null) {
+            server.close(); // also shuts down the CoreContainer
+        }
     }
 
     /**
