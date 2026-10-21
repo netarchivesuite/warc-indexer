@@ -6,7 +6,7 @@
     <packaging>jar</packaging>
     <name>warc-indexer</name>
     <url>https://github.com/netarchivesuite/warc-indexer</url>
-    <version>3.5.2</version>
+    <version>3.5.3-SNAPSHOT</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -591,10 +591,16 @@
             <artifactId>tika-parser-html-commons</artifactId>
         </dependency>
 
+        <!-- Language detection. Replaces carrotsearch:langid-java (archived/
+             unmaintained upstream, Nov 2023). Supports ~115-120 languages
+             versus optimaize's 71, with a model explicitly curated to drop
+             languages that were easily confused with others. See
+             LanguageAnalyser for the ISO 639-3 -> ISO 639-1 code mapping
+             kept for backwards compatibility with content_language. -->
         <dependency>
             <groupId>org.apache.tika</groupId>
-            <artifactId>tika-langdetect-optimaize</artifactId>
-            <scope>runtime</scope>
+            <artifactId>tika-langdetect-opennlp</artifactId>
+            <!-- Compile scope: LanguageAnalyser uses OpenNLPDetector directly -->
         </dependency>
 
         <!-- Logging. Tika 2.9 and SolrJ 9 are built against SLF4J 2.x, so use the 2.x API and
@@ -803,21 +809,16 @@
             </exclusions>
         </dependency>
 
-        <!-- Used for Language detection -->
-        <dependency>
-            <groupId>com.carrotsearch</groupId>
-            <artifactId>langid-java</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-
-
         <!-- Libraries our own code uses directly. They used to arrive only transitively
              (found by mvn dependency:analyze), so they are declared explicitly here.
              Versions are the ones already resolved before. -->
+        <!-- Guava: used by LinkExtractor (InternetDomainName), WARCIndexer, FirstBytesAnalyser and
+             AnnotationsFromAct. webarchive-commons excludes its own Guava, and tika-langdetect-optimaize
+             (which used to bring it in) is gone, so it must be declared here. -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>33.4.8-jre</version>
+            <version>33.7.2-jre</version>
         </dependency>
         <dependency>
             <groupId>de.l3s.boilerpipe</groupId>

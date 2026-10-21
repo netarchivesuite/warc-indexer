@@ -1,12 +1,25 @@
 **NOTE** Generally, we only add terms to the Solr schema, so it should usually be compatible with previous versions (i.e. clients should be able to query across both without modification). However, there are been a small number of fixes which unfortunately required breaking changes you may need to be aware of or work-around. e.g. [hash becomes single-valued](https://github.com/ukwa/webarchive-discovery/issues/95) from 3.0.0 to 3.1.0
 
 
+
+
 3.5.3
 -----
 
+### Language detection: replaced CarrotSearch langid-java with Apache Tika (OpenNLP)
+
+CarrotSearch's `langid-java` is archived/unmaintained upstream. Language detection now uses Apache Tika's OpenNLP-based detector (`tika-langdetect-opennlp`), supporting 103 languages (per Tika's own documentation).
+
+- Norwegian is no longer lumped together as a single `no`: the detector distinguishes Norwegian Bokmål (`nb`) from Norwegian Nynorsk (`nn`) and indexes them separately.
+- `content_language` keeps using the same two-letter ISO 639-1 codes as before (except for Norwegian) -- the detector's native ISO 639-3 (three-letter) codes are mapped back to their ISO 639-1 equivalent where one exists, so existing queries/facets are unaffected.
+- Language detection is now skipped for record types that aren't natural-language prose, checked via MIME type and, as a fallback, file extension:
+  - Mimetypes skipped: `text/css`, `application/javascript`, `text/javascript`, `application/x-javascript`, `application/ecmascript`, `text/ecmascript`, `application/json`, `text/json`, `application/ld+json`, `application/manifest+json`, `application/feed+json`, `application/rss+xml`, `application/atom+xml`, `application/xml`, `text/xml`, `application/xml-dtd`, `image/svg+xml`, `text/csv`, `text/tab-separated-values`, `application/x-yaml`, `text/yaml`, `text/x-yaml`, `text/calendar`, `text/vcard`, `text/x-vcard`, `application/x-sh`, `text/x-shellscript`, `application/sql`, `text/x-sql`, `application/x-httpd-php`, `text/x-php`, `text/x-python`, `text/x-java-source`, `text/x-csrc`, `text/x-c++src`.
+  - `content_type_ext` (file extension) skipped as a fallback, for files served with a generic mimetype such as `text/plain`: `ftl`, `properties`, `po`, `pot`, `mo`, `strings`, `resx`, `xlf`, `xliff`, `lang`, `ini`, `cfg`, `toml`, `env`, `lock`, `yml`, `yaml`, `css`, `js`, `json`, `xml`, `svg`, `csv`, `tsv`, `sql`, `sh`.
+- The `langdetectprofiles` config option -- used under `langid-java` to select and order which languages were tested, e.g. for performance or to limit detection to languages relevant to a collection -- has been removed from the shipped `.conf` files. Tika's OpenNLP detector always scores against its full, fixed language model and has no supported way to restrict or prioritise a subset, so this setting is no longer read anywhere and has no effect if present in a custom config.
+
 ### Dependency cleanup and upgrades
 
-This release has no new features. It cleans up and upgrades the Maven dependencies and fixes several version
+This part of the release cleans up and upgrades the Maven dependencies and fixes several version
 conflicts in the shaded jar (`jar-with-dependencies`). Some of these conflicts could cause runtime failures.
 
 The code is compiled for Java 11, so Java 11 is the minimum, not a requirement. It runs on Java 11, 17 and 21.
@@ -49,6 +62,7 @@ Java 25 is not supported, because Solr 9 does not run on it.
 -----
 Minimum default image height/width changed from 150 pixels to 100 pixels for PDQ-hash (image similarity). This can still produce good matches.
 Added support for image format WebP required for calculating PDQ-Hash/pHash (com.twelvemonkeys.imageio dependency)
+
 
 3.5.1
 -----
