@@ -6,7 +6,7 @@
     <packaging>jar</packaging>
     <name>warc-indexer</name>
     <url>https://github.com/netarchivesuite/warc-indexer</url>
-    <version>3.5.2</version>
+    <version>3.5.3-SNAPSHOT</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
