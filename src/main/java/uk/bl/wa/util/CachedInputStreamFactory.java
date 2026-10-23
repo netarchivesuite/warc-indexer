@@ -105,10 +105,25 @@ public class CachedInputStreamFactory {
             long onDiskThreshold) throws IOException {
         File cacheFile = File.createTempFile("warc-indexer", ".cache");
         cacheFile.deleteOnExit();
-        OutputStream cache = new FileOutputStream(cacheFile);
+        try {
+            return diskCacheContent(in, length, onlyReadLength, closeAfterRead, onDiskThreshold, cacheFile);
+        } catch (IOException | RuntimeException e) {
+            // Caching failed: don't leave the temp file behind
+            if (cacheFile.exists() && !cacheFile.delete()) {
+                log.warn("Unable to delete '" + cacheFile + "' after failed caching");
+            }
+            throw e;
+        }
+    }
+
+    private static InputStream diskCacheContent(
+            InputStream in, long length, boolean onlyReadLength, boolean closeAfterRead,
+            long onDiskThreshold, File cacheFile) throws IOException {
         long toCopy = onlyReadLength ? Math.min(length, onDiskThreshold) : onDiskThreshold;
-        long copied = IOUtils.copyLarge(in, cache, 0, toCopy);
-        cache.close();
+        long copied;
+        try (OutputStream cache = new FileOutputStream(cacheFile)) {
+            copied = IOUtils.copyLarge(in, cache, 0, toCopy);
+        }
 
         if (onlyReadLength && length > onDiskThreshold) {
             // Read the remainder of the stream
