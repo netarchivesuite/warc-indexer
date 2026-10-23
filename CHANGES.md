@@ -58,6 +58,13 @@ Java 25 is not supported, because Solr 9 does not run on it.
   because they are too small or too large. Timing for the PDQ and pHash calculations has been added to the
   performance statistics.
 
+### Fixes
+
+- **Better cleanup of temporary cache files.** Payloads cached on disk (records larger than `inMemoryThreshold`)
+  and Tika's temporary files are now always deleted after each record, also for revisit records, records where
+  parsing fails or throws an exception, and MIME types excluded from parsing. Before, these could be left in the
+  temp directory until the indexing job ended, using disk space and open file handles on large indexing runs.
+
 3.5.2
 -----
 Minimum default image height/width changed from 150 pixels to 100 pixels for PDQ-hash (image similarity). This can still produce good matches.
