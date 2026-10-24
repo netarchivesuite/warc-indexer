@@ -2,6 +2,12 @@
 
 Unreleased
 
+### OCR disabled
+
+- **Tika no longer runs OCR.** Until now, Tika ran OCR on images and PDFs whenever the `tesseract` binary was
+  installed on the indexing machine, so the extracted text depended on that machine. OCR is now always off. If you
+  indexed with tesseract installed, images will no longer get OCR text in `content`.
+
 ### Output regression tests
 
 - **Golden-file test added.** `WARCIndexerGoldenFileTest` indexes the test archives in `src/test/resources` and

@@ -46,8 +46,6 @@ import org.apache.solr.common.SolrInputField;
 import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveReaderFactory;
 import org.archive.io.ArchiveRecord;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -92,31 +90,6 @@ public class WARCIndexerGoldenFileTest {
             .writer(new DefaultPrettyPrinter()
                     .withObjectIndenter(new DefaultIndenter("  ", "\n"))
                     .withArrayIndenter(new DefaultIndenter("  ", "\n")));
-
-    private static final String TIKA_CONFIG_PROPERTY = "tika.config";
-    private static String previousTikaConfig;
-
-    /**
-     * OCR output varies between tesseract versions and is missing where tesseract is not installed, so it is turned
-     * off here to keep the golden files the same on every machine. OCR is tested in TikaPayloadAnalyserOcrTest.
-     * Tika reads this property each time a {@code Tika} instance is created, so it applies to the indexers below.
-     */
-    @BeforeClass
-    public static void disableOcr() throws URISyntaxException {
-        previousTikaConfig = System.getProperty(TIKA_CONFIG_PROPERTY);
-        // Tika needs an absolute URI here; a plain file path is rejected
-        System.setProperty(TIKA_CONFIG_PROPERTY, WARCIndexerGoldenFileTest.class.getClassLoader()
-                .getResource("tika-config-no-ocr.xml").toURI().toString());
-    }
-
-    @AfterClass
-    public static void restoreTikaConfig() {
-        if (previousTikaConfig == null) {
-            System.clearProperty(TIKA_CONFIG_PROPERTY);
-        } else {
-            System.setProperty(TIKA_CONFIG_PROPERTY, previousTikaConfig);
-        }
-    }
 
     @Parameters(name = "{0}")
     public static Collection<Object[]> archives() {

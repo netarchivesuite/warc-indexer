@@ -39,6 +39,7 @@ import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
+import org.apache.tika.parser.ocr.TesseractOCRConfig;
 import org.apache.tika.sax.boilerpipe.BoilerpipeContentHandler;
 import org.apache.tika.sax.BodyContentHandler;
 import org.apache.tika.sax.WriteOutContentHandler;
@@ -275,6 +276,12 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
 
         //If not set, you will get a NullPointer from ParseRunner.run() as Tika tries to perform OCR on PDF files
         context.set ( Parser.class, tika.getParser());
+
+        // Never run OCR. Tika would otherwise OCR images and PDFs whenever tesseract happens to be installed,
+        // which is slow and makes the output depend on the machine and the tesseract version.
+        TesseractOCRConfig ocrConfig = new TesseractOCRConfig();
+        ocrConfig.setSkipOcr(true);
+        context.set(TesseractOCRConfig.class, ocrConfig);
 
         try {
             final long parseStart = System.nanoTime();

@@ -33,13 +33,6 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: maven
 
-      # Tika uses tesseract for OCR on images. TikaPayloadAnalyserOcrTest fails on CI without it.
-      - name: Install tesseract
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng
-          tesseract --version
-
       - name: Build and test
         run: mvn -B verify
 
