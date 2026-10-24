@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Tika configuration used by WARCIndexerGoldenFileTest.
+  Tika runs OCR on images whenever the tesseract binary is on the PATH, and OCR output varies between tesseract
+  versions. Excluding the OCR parser keeps the golden files the same on every machine.
+  OCR itself is tested separately in TikaPayloadAnalyserOcrTest.
+-->
+<properties>
+    <parsers>
+        <parser class="org.apache.tika.parser.DefaultParser">
+            <parser-exclude class="org.apache.tika.parser.ocr.TesseractOCRParser"/>
+        </parser>
+    </parsers>
+</properties>
