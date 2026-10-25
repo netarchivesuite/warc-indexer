@@ -232,6 +232,26 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
             tikainput = TikaInputStream.get( new CloseShieldInputStream(is) );
         }
 
+        // The TikaInputStream may hold temporary files (e.g. for zip/OLE based formats), which are only removed
+        // when it is closed. Close it on every path, including early returns and Errors.
+        try {
+            return extractFromTikaInput(source, solr, tikainput, url);
+        } finally {
+            try {
+                tikainput.close();
+            } catch (IOException e) {
+                log.warn("Exception closing TikaInputStream. This leaves tmp-files: " +  e.getMessage() +
+                         " for " + url + " in " + source);
+            }
+        }
+    }
+
+    /**
+     * Detection, parsing and metadata extraction for {@link #extract(String, SolrRecord, InputStream, String)}.
+     * The caller is responsible for closing tikainput.
+     */
+    @SuppressWarnings( "deprecation" )
+    private SolrRecord extractFromTikaInput( String source, SolrRecord solr, InputStream tikainput, String url ) {
         // Also pass URL as metadata to allow extension hints to work:
         Metadata metadata = new Metadata();
         if( url != null ) {
@@ -518,16 +538,6 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
 
         } catch( Exception e ) {
             log.error( "TikaExtractor.extract(): " + e.getMessage() + " for URL " + url + " in " + source);
-        }
-
-        // TODO: This should probably be wrapped in a method-spanning try-finally to guarantee close
-        if (tikainput != null) {
-            try {
-                tikainput.close();
-            } catch (IOException e) {
-                log.warn("Exception closing TikaInputStream. This leaves tmp-files: " +  e.getMessage() +
-                         " for " + url + " in " + source);
-            }
         }
 
         return solr;

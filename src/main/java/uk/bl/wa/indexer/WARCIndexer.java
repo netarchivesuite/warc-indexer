@@ -359,58 +359,63 @@ public class WARCIndexer {
             final InputStreamUtils.HashIS hashIS = InputStreamUtils.cacheDecompressDechunkHash(
                     record, content_length, targetUrl, header, httpHeader,
                     this.inMemoryThreshold, this.onDiskThreshold, this.hashStage);
+            // The cached payload (memory or temp file) must be released on every path below,
+            // including the early return for revisit records and any exception during analysis.
+            try {
 
-            // If the hash didn't match, record it:
-            if (!hashIS.getHashStream().isHashMatched()) {
-                // Facet-friendly:
-                solr.addField(SolrFields.PARSE_ERROR,
-                        "Digest validation failed!");
-                // Detailed version:
-                solr.addField(SolrFields.PARSE_ERROR,
-                        "Digest validation failed: header value is "
-                                + hashIS.getHashStream().getHeaderHash()
-                                + " but calculated "
-                                + hashIS.getHashStream().getHash());
-            }
+                // If the hash didn't match, record it:
+                if (!hashIS.getHashStream().isHashMatched()) {
+                    // Facet-friendly:
+                    solr.addField(SolrFields.PARSE_ERROR,
+                            "Digest validation failed!");
+                    // Detailed version:
+                    solr.addField(SolrFields.PARSE_ERROR,
+                            "Digest validation failed: header value is "
+                                    + hashIS.getHashStream().getHeaderHash()
+                                    + " but calculated "
+                                    + hashIS.getHashStream().getHash());
+                }
 
-            final InputStream tikaInput = hashIS.getInputStream();
-            // TODO: Consider adding support for GZip / Brotli compression at this point
-            final String hash = hashIS.getHashStream().getHash();
-            Instrument.timeRel("WARCIndexer.extract#total",
-                               "WARCIndexer.extract#hashstreamwrap", hashStreamStart);
-            // Set these last:
-            solr.setField( SolrFields.HASH, hash );
+                final InputStream tikaInput = hashIS.getInputStream();
+                // TODO: Consider adding support for GZip / Brotli compression at this point
+                final String hash = hashIS.getHashStream().getHash();
+                Instrument.timeRel("WARCIndexer.extract#total",
+                                   "WARCIndexer.extract#hashstreamwrap", hashStreamStart);
+                // Set these last:
+                solr.setField( SolrFields.HASH, hash );
 
-            applyAnnotations(solr, saneURI);
+                applyAnnotations(solr, saneURI);
 
-            // -----------------------------------------------------
-            // WARC revisit record handling:
-            // -----------------------------------------------------
+                // -----------------------------------------------------
+                // WARC revisit record handling:
+                // -----------------------------------------------------
 
-            // If this is a revisit record, we should just return an update to the crawl_dates (when using hashUrlId)
-            if (WARCConstants.WARCRecordType.revisit.name().equalsIgnoreCase((String) header.getHeaderValue(HEADER_KEY_TYPE))) {
-                solr.removeField(SolrFields.CONTENT_LENGTH); //It is 0 and would mess with statistics                                                                                
-                //Copy content_type_served to content_type (no tika/droid for revisits)
-                solr.addField(SolrFields.SOLR_CONTENT_TYPE, (String) solr.getFieldValue(SolrFields.CONTENT_TYPE_SERVED));
-                return solr;
-            }
+                // If this is a revisit record, we should just return an update to the crawl_dates (when using hashUrlId)
+                if (WARCConstants.WARCRecordType.revisit.name().equalsIgnoreCase((String) header.getHeaderValue(HEADER_KEY_TYPE))) {
+                    solr.removeField(SolrFields.CONTENT_LENGTH); //It is 0 and would mess with statistics                                                                                
+                    //Copy content_type_served to content_type (no tika/droid for revisits)
+                    solr.addField(SolrFields.SOLR_CONTENT_TYPE, (String) solr.getFieldValue(SolrFields.CONTENT_TYPE_SERVED));
+                    return solr;
+                }
 
-            // -----------------------------------------------------
-            // Payload duplication has been checked, ready to parse:
-            // -----------------------------------------------------
+                // -----------------------------------------------------
+                // Payload duplication has been checked, ready to parse:
+                // -----------------------------------------------------
 
-            final long analyzeStart = System.nanoTime();
+                final long analyzeStart = System.nanoTime();
 
-            // Mark the start of the payload, with a readLimit corresponding to
-            // the payload size:
-            tikaInput.mark( ( int ) content_length );
+                // Mark the start of the payload, with a readLimit corresponding to
+                // the payload size:
+                tikaInput.mark( ( int ) content_length );
             
-            // Pass on to other extractors as required, resetting the stream before each:
-            this.wpa.analyse(archiveName, header, httpHeader, tikaInput, solr, content_length);
-            Instrument.timeRel("WARCIndexer.extract#total", "WARCIndexer.extract#analyzetikainput", analyzeStart);
+                // Pass on to other extractors as required, resetting the stream before each:
+                this.wpa.analyse(archiveName, header, httpHeader, tikaInput, solr, content_length);
+                Instrument.timeRel("WARCIndexer.extract#total", "WARCIndexer.extract#analyzetikainput", analyzeStart);
 
-            // Clear up the caching of the payload:
-            hashIS.cleanup();
+            } finally {
+                // Clear up the caching of the payload:
+                hashIS.cleanup();
+            }
 
             // -----------------------------------------------------
             // Payload analysis complete, now performing text analysis:

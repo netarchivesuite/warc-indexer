@@ -52,14 +52,36 @@ public abstract class AbstractTextAnalyser {
 
     /**
      * Hook for run-time config.
-     * 
+     *
      * @param conf
      */
     public abstract void configure(Config conf);
 
     /**
+     * Hook allowing a text analyser to opt out of running against this
+     * record's extracted text -- e.g. skipping language detection for
+     * CSS/JavaScript/JSON, which aren't natural-language text and just
+     * introduce noise. Mirrors
+     * {@link uk.bl.wa.analyser.payload.AbstractPayloadAnalyser#shouldProcess(String)},
+     * but also takes the full {@link SolrRecord}: MIME type alone isn't always
+     * enough (e.g. a localisation/resource file served as generic
+     * "text/plain"), so an implementation may also want other record fields,
+     * such as the URL/file extension.
+     * <p>
+     * Default: always process. Most text analysers don't care and don't need
+     * to override this.
+     *
+     * @param mimeType the record's normalised MIME type (may be null if unknown)
+     * @param solr the record being processed, for any other fields a decision needs
+     * @return true if this analyser should run against this record's text
+     */
+    public boolean shouldProcess(String mimeType, SolrRecord solr) {
+        return true;
+    }
+
+    /**
      * Sub-classes should implement this method to create text payload annotations for solr.
-     * 
+     *
      * @param text
      * @param solr
      */

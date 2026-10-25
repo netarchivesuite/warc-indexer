@@ -42,8 +42,12 @@ public class TextAnalysers {
             String text = ( String ) solr.getField( SolrFields.SOLR_EXTRACTED_TEXT ).getFirstValue();
             text = text.trim();
             if( !"".equals( text ) ) {
+                // Already set (normalised by WARCPayloadAnalysers) on the Solr record at this point in the pipeline.
+                String mimeType = solr.getField( SolrFields.SOLR_CONTENT_TYPE ) != null
+                        ? ( String ) solr.getField( SolrFields.SOLR_CONTENT_TYPE ).getFirstValue()
+                        : null;
                 for( AbstractTextAnalyser ta : analysers ) {
-                    if (ta.isEnabled()) {
+                    if (ta.isEnabled() && ta.shouldProcess(mimeType, solr)) {
                         ta.analyse(text, solr);
                     }
                 }
