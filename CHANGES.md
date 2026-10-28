@@ -1,5 +1,21 @@
 **NOTE** Generally, we only add terms to the Solr schema, so it should usually be compatible with previous versions (i.e. clients should be able to query across both without modification). However, there are been a small number of fixes which unfortunately required breaking changes you may need to be aware of or work-around. e.g. [hash becomes single-valued](https://github.com/ukwa/webarchive-discovery/issues/95) from 3.0.0 to 3.1.0
 
+Unreleased
+
+### OCR disabled
+
+- **Tika no longer runs OCR.** Until now, Tika ran OCR on images and PDFs whenever the `tesseract` binary was
+  installed on the indexing machine, so the extracted text depended on that machine. OCR is now always off. If you
+  indexed with tesseract installed, images will no longer get OCR text in `content`.
+
+### Output regression tests
+
+- **Golden-file test added.** `WARCIndexerGoldenFileTest` indexes the test archives in `src/test/resources` and
+  compares every resulting document, field by field, with expected output committed under
+  `src/test/resources/golden/`. Any change to what the indexer produces now fails the build until the expected files
+  are regenerated, so the change shows up as a readable diff in the pull request. When a change is intended,
+  regenerate the files with `mvn test -Dtest=WARCIndexerGoldenFileTest -Dupdate.golden=true` and commit them with
+  the change. Image analysis is off in the default configuration, so image fields (PDQ, pHash) are not covered yet.
 
 
 

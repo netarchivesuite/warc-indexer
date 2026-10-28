@@ -591,6 +591,13 @@
             <artifactId>tika-parser-html-commons</artifactId>
         </dependency>
 
+        <!-- Used directly (TikaPayloadAnalyser turns OCR off through TesseractOCRConfig). Also in
+             tika-parsers-standard-package, but only at runtime scope there. -->
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-parser-ocr-module</artifactId>
+        </dependency>
+
         <!-- Language detection. Replaces carrotsearch:langid-java (archived/
              unmaintained upstream, Nov 2023). Supports ~115-120 languages
              versus optimaize's 71, with a model explicitly curated to drop

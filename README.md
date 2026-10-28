@@ -41,6 +41,16 @@ To override the default with a new configuration:
 
 Note that this project also contains short ARC and WARC test files, taken from the [warc-test-corpus]
 
+Output regression tests
+-----------------------
+
+`WARCIndexerGoldenFileTest` indexes the test archives in `src/test/resources` and compares every resulting document
+with the expected output in `src/test/resources/golden/`. If you change what the indexer produces, the test fails and
+shows the first differing line. When the change is intended, regenerate the expected files and commit them together
+with your change, so reviewers can see the effect in the diff:
+
+    $ mvn test -Dtest=WARCIndexerGoldenFileTest -Dupdate.golden=true
+
 Annotations
 -----------
 
