@@ -2,6 +2,12 @@
 
 Unreleased
 
+### Performance
+
+- **DROID-light no longer allocates 20 MB per record.** The buffer now starts at 64 KB and grows as needed up to the same 20 MB limit, so payloads of 20 MB
+  or more are handled exactly as before. Indexed output is unchanged. Measured on two real WARCs (850 MB in total,
+  5 runs per version): median wall time down 5.6% and CPU time down 6.3%. GC pauses fell from 3,032 to 1,405, and pauses caused by humongous allocations from 3,015 to 10.
+
 ### OCR disabled
 
 - **Tika no longer runs OCR.** Until now, Tika ran OCR on images and PDFs whenever the `tesseract` binary was
