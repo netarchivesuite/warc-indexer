@@ -171,7 +171,7 @@ public class WARCPayloadAnalysers {
                     || contentType.matches("^application/xhtml.*$")) {
                 solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "html");
                 solr.setField(SolrFields.SOLR_TYPE, "Web Page");
-            } else if (contentType.matches("^application/pdf.*$")) {
+            } else if (contentType.matches("^application/pdf.*$") || contentType.matches("^application/illustrator.*$")) {  // NEW: PDF-compatible Illustrator files
                 solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "pdf");
                 solr.setField(SolrFields.SOLR_TYPE, "Document");
             } else if (contentType.matches("^.*word$")
@@ -187,8 +187,7 @@ public class WARCPayloadAnalysers {
             } else if (contentType.matches("^.*powerpoint$")
                     || contentType.matches("^.*presentationml.*$")            // NEW: .pptx, .potx, .ppsx (OOXML)
                     || contentType.matches("^application/vnd.ms-powerpoint\\..*macroenabled.*$")) { // NEW: .pptm
-                solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE,
-                        "powerpoint");
+                solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "powerpoint");
                 solr.setField(SolrFields.SOLR_TYPE, "Presentation");
             } else if (contentType.matches("^text/plain.*$")) {
                 solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "text");
