@@ -1735,6 +1735,13 @@ public class DroidSignatureVerifier {
     static int WINDOW_BYTES_FOR_LARGE_FILES = 20_000_000; // 20 MB
 
     /**
+     * Starting size of the head buffer in readBoundedRegion(InputStream), which
+     * grows from here up to WINDOW_BYTES_FOR_LARGE_FILES. Most WARC payloads
+     * (HTML, CSS, JS, small images) fit within it without any regrowth.
+     */
+    static final int INITIAL_HEAD_BUFFER_BYTES = 65536; // 64 KB
+
+    /**
      * Reads a FileRegion for the given file: the whole file if it's at or below
      * LARGE_FILE_THRESHOLD_BYTES, or bounded head+tail windows (via a seekable
      * RandomAccessFile - no need to read the middle at all) if it's larger. This
@@ -1824,13 +1831,24 @@ public class DroidSignatureVerifier {
      *     fixed-size CIRCULAR tail buffer (overwriting the oldest bytes as new
      *     ones arrive), tracking total length, until EOF - so memory use stays
      *     bounded at 2 x windowSize regardless of how long the stream actually is.
+     *
+     * PERFORMANCE: the head buffer starts at INITIAL_HEAD_BUFFER_BYTES and
+     * doubles as needed, up to windowSize. Allocating the full 20 MB window up
+     * front for every stream meant 20 MB per WARC entry, even for a 2 KB one.
      */
     static FileRegion readBoundedRegion(InputStream in) throws IOException {
         int windowSize = WINDOW_BYTES_FOR_LARGE_FILES;
-        byte[] headBuffer = new byte[windowSize];
+        byte[] headBuffer = new byte[Math.min(windowSize, INITIAL_HEAD_BUFFER_BYTES)];
         int headFilled = 0;
         int n;
-        while (headFilled < windowSize && (n = in.read(headBuffer, headFilled, windowSize - headFilled)) != -1) {
+        while (headFilled < windowSize) {
+            if (headFilled == headBuffer.length) {
+                headBuffer = Arrays.copyOf(headBuffer, (int) Math.min(windowSize, headBuffer.length * 2L));
+            }
+            n = in.read(headBuffer, headFilled, headBuffer.length - headFilled);
+            if (n == -1) {
+                break;
+            }
             headFilled += n;
         }
         if (headFilled < windowSize) {

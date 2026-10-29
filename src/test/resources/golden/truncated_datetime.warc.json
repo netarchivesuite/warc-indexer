@@ -1,0 +1,53 @@
+[
+  {
+    "content" : "Simple page Extremely simple webpage used for testing GZip and Brotli transmission compression.",
+    "content_encoding" : "ISO-8859-1",
+    "content_ffb" : "3c68746d",
+    "content_language" : "en",
+    "content_length" : "246",
+    "content_text_length" : "95",
+    "content_type" : "text/html",
+    "content_type_droid" : "text/html",
+    "content_type_full" : "text/html; charset=ISO-8859-1",
+    "content_type_norm" : "html",
+    "content_type_served" : "text/html",
+    "content_type_tika" : "text/html; charset=ISO-8859-1",
+    "crawl_date" : "2019-08-15T01:02:00Z",
+    "crawl_year" : "2019",
+    "domain" : "statsbiblioteket.dk",
+    "elements_used" : [
+      "head",
+      "p",
+      "h1",
+      "html",
+      "title",
+      "body"
+    ],
+    "hash" : "sha1:YXEHY6U7U5PWVRSVDUH5YGXNN6VV2JXL",
+    "host" : "tokemon.sb.statsbiblioteket.dk",
+    "host_surt" : [
+      "(dk,",
+      "(dk,statsbiblioteket,",
+      "(dk,statsbiblioteket,sb,",
+      "(dk,statsbiblioteket,sb,tokemon,"
+    ],
+    "id" : "201908150102/+BV/tmv/tASHANg2c3/2MA==",
+    "public_suffix" : "dk",
+    "record_type" : "response",
+    "server" : "Apache/2.4.29 (Ubuntu)",
+    "source_file" : "truncated_datetime.warc",
+    "source_file_offset" : "1198",
+    "source_file_path" : "target/test-classes/truncated_datetime.warc",
+    "ssdeep_hash_bs_3" : "dwvJjAoCHBOrRcMV4d1IMxxdI10L",
+    "ssdeep_hash_bs_6" : "dMAdBqRcMV4d1IKI10L",
+    "status_code" : "200",
+    "title" : "Simple page",
+    "type" : "Web Page",
+    "url" : "http://tokemon.sb.statsbiblioteket.dk/",
+    "url_path" : "/",
+    "url_type" : "slashpage",
+    "warc_ip" : "172.18.95.66",
+    "warc_key_id" : "<urn:uuid:bd300b07-eaa0-46e3-bdfd-116f11a62993>",
+    "wayback_date" : "20190815010200"
+  }
+]

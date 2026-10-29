@@ -1,0 +1,2 @@
+# The golden-file test compares output byte for byte, so the expected files must keep LF line endings on every OS.
+src/test/resources/golden/** text eol=lf

@@ -142,7 +142,7 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
                                                   
                 String version= null;
                 if (droidLightDetection != null) { 
-                   solr.setField(SolrFields.CONTENT_TYPE_DROID,  droidLightDetection.getPrimaryMimeTypeWithVersion());
+                    solr.setField(SolrFields.CONTENT_TYPE_DROID, droidLightDetection.getPrimaryMimeTypeWithVersionOrName());                    
                    version=droidLightDetection.getVersion();
                 }
 
